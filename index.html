@@ -17,7 +17,7 @@
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             padding: 15px 30px; background: #ff69b4; color: white; font-size: 20px;
             font-weight: bold; border: none; border-radius: 10px; cursor: pointer; z-index: 999;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: block; /* 確実に表示させるよう修正 */
         }
         #loading {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -47,6 +47,10 @@
         renderer.xr.enabled = true; 
         document.body.appendChild(renderer.domElement);
 
+        // ボタンのクリックイベントをバインド（★追加修正部分）
+        const vrButton = document.getElementById('vr-button');
+        vrButton.addEventListener('click', onVRButtonClick);
+
         // 照明
         const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
         scene.add(ambientLight);
@@ -65,7 +69,7 @@
         bedGroup.position.set(0, 0, -1.5);
         scene.add(bedGroup);
 
-        // --- 2. 壁掛け操作パネル（パイズリ追加・計7ボタン） ---
+        // --- 2. 壁掛け操作パネル ---
         const panelGroup = new THREE.Group();
         const board = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.3), new THREE.MeshStandardMaterial({ color: 0x111111 }));
         panelGroup.add(board);
@@ -131,7 +135,6 @@
             document.getElementById('loading').style.display = 'none';
         });
 
-        // 喘ぎ声セリフデータ
         const sexQuotes = ["女の子：『んほぉぉ！おっきいのがナカでガクガク暴れてるぅぅ！！』", "女の子：『そこッ、まんこの奥の、一番気持ちいいトコ突かれてるぅ、いくぅぅ！』"];
         const fellaQuotes = ["女の子：『んちゅ、じゅぶぅ…お口の奥まで入ってきて苦しいっ、でも気持ちいい…んむぅ』", "女の子：『れろ、れろぉ…お汁いっぱいでちんぽ美味しい…ジュブジュブうぅ…』"];
         const handQuotes = ["女の子：『私の手でシコシコ…おっきいおねだり棒がビクビク跳ねてるよぉ…♪』"];
@@ -190,57 +193,47 @@
                 subtitles.innerText = "女の子：『あぁっ！ちんぽ入ってきたぁ！自動でナカいっぱいかき回してぇぇ！！』";
             }
             else if (poseName === "autopaizuri") {
-                // 【新機能：自動パイズリ主観モード】
                 girlModel.position.set(0, 0.38, -0.45);
-                // 両腕を胸の前に集めておっぱいをギュッと挟み込む姿勢を再現
                 if (b.lArm) { b.lArm.rotation.x = -Math.PI / 4; b.lArm.rotation.y = Math.PI / 6; b.lArm.rotation.z = Math.PI / 12; }
                 if (b.rArm) { b.rArm.rotation.x = -Math.PI / 4; b.rArm.rotation.y = -Math.PI / 6; b.rArm.rotation.z = -Math.PI / 12; }
-                // 目の前に豊かなおっぱいの谷間が迫る位置にカメラを固定！
                 userGroup.position.set(0, 0.22, 0.05);
                 subtitles.innerText = "女の子：『私の大きなお胸で挟んであげる…んっ、パイズリで気持ちよくなってね？///』";
             }
         }
 
-        // --- 5. コントローラーと手・ちん（棒）の設定 ---
+        // --- 5. コントローラーと手・ちんの設定 ---
         const controller1 = renderer.xr.getController(0); userGroup.add(controller1); 
         const controller2 = renderer.xr.getController(1); userGroup.add(controller2); 
 
-        // 左手
         const leftHandMesh = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff69b4 }));
         controller1.add(leftHandMesh);
 
-        // 右手：特製ちんぽ
         const chinGroup = new THREE.Group();
         const chinMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 16), new THREE.MeshStandardMaterial({ color: 0xff1493, roughness: 0.3 }));
         chinMesh.rotation.x = Math.PI / 2; chinMesh.position.z = -0.125; 
         chinGroup.add(chinMesh);
         controller2.add(chinGroup);
 
-        // --- ★新機能：シチュエーション完全特化型ミルク発射システム ---
+        // --- 6. シチュエーション特化型ミルク発射システム ---
         const milkParticles = [];
         function shootSituationMilk() {
             const tipPos = new THREE.Vector3(0, 0, -0.25).applyMatrix4(controller2.matrixWorld);
             const subtitles = document.getElementById('subtitles');
 
-            let count = 25; // 粒の数
+            let count = 25; 
             let speedBase = 0.09;
 
             if (currentPose === "autosex") {
-                // 【本番：中出し】外に飛ばさず、結合部の奥に溜まるように下向き・至近距離で大量射出
-                count = 35;
-                speedBase = 0.02; // ナカにドロっと出す
+                count = 35; speedBase = 0.02; 
                 subtitles.innerText = "女の子：『んほぉぉーーッ！！子宮に熱いのイッパイ出たぁ！ナカだし最高にきもちいいぃぃっ！！』";
             } 
             else if (currentPose === "autofella") {
-                // 【フェラ：お口・顔ぶっかけ】お口の奥にドピュドピュと発射
                 subtitles.innerText = "女の子：『んぐぅ、ジュポ、ごくんっ…！ちんぽミルク喉の奥にいっぱい入ってきたぁ…ゲホッ、んちゅ』";
             } 
             else if (currentPose === "autopaizuri") {
-                // 【パイズリ：おっぱい・谷間ぶっかけ】おっぱいに向かって勢いよく飛び散る
                 subtitles.innerText = "女の子：『ゃぁあぁっ！お胸にドロドロの特製ミルクがいっぱいかかっちゃったぁ…っ///』";
             }
             else {
-                // 通常時・手コキ：前方に勢いよくぶっかけ
                 subtitles.innerText = "女の子：『ひゃあああぁッ！！ミルクが勢いよくドピュドピュ飛んできたぁぁーーっ！！』";
             }
 
@@ -257,14 +250,13 @@
                 pMesh.userData = {
                     velocity: dir.multiplyScalar(speedBase + Math.random() * 0.05),
                     gravity: currentPose === "autosex" ? 0.001 : 0.003,
-                    life: currentPose === "autosex" ? 90 : 60 // 中出し時は長く消えずに残る
+                    life: currentPose === "autosex" ? 90 : 60 
                 };
                 scene.add(pMesh);
                 milkParticles.push(pMesh);
             }
         }
 
-        // ミルクの物理挙動更新
         function updateMilkParticles() {
             for(let i = milkParticles.length - 1; i >= 0; i--) {
                 const p = milkParticles[i];
@@ -293,16 +285,13 @@
             });
         }
 
-        // 接触・マクロ・バイブシステム
-        let speechTimeout = 0;
-        let macroTimer = 0;
+        // 接触・マクロ・バイブ
+        let speechTimeout = 0; let macroTimer = 0;
 
         function checkEroCollision(session) {
             if (!girlModel) return;
 
             const leftHandPos = new THREE.Vector3(); controller1.getWorldPosition(leftHandPos);
-            const chinTipPos = new THREE.Vector3(0, 0, -0.25).applyMatrix4(controller2.matrixWorld);
-
             const headPos = new THREE.Vector3(); if(b.head) b.head.getWorldPosition(headPos); else headPos.set(girlModel.position.x, girlModel.position.y + 1.35, girlModel.position.z);
             const chestPos = new THREE.Vector3(); if(b.spine) b.spine.getWorldPosition(chestPos); else chestPos.set(girlModel.position.x, girlModel.position.y + 0.95, girlModel.position.z);
             const msnPos = new THREE.Vector3(); if(b.hips) b.hips.getWorldPosition(msnPos); else msnPos.set(girlModel.position.x, girlModel.position.y + 0.5, girlModel.position.z);
@@ -310,7 +299,6 @@
             const subtitles = document.getElementById('subtitles');
             const now = Date.now();
 
-            // なでなとなタッチ
             if (leftHandPos.distanceTo(headPos) < 0.22) {
                 subtitles.innerText = "女の子：『あたま、なでなでするのすっごく嬉しいな…もっと優しくしてぇ…♪』";
                 pulseController(session, 'left', 0.1, 30);
@@ -320,7 +308,6 @@
                 pulseController(session, 'left', 0.2, 40);
             }
 
-            // --- 各種自動マクロ高速往復運動 ---
             macroTimer += 0.14; 
             if (currentPose === "autohand") {
                 if(b.rArm) b.rArm.rotation.x = Math.sin(macroTimer) * 0.4;
@@ -334,15 +321,14 @@
             }
             else if (currentPose === "autosex") {
                 const speedOffset = Math.sin(macroTimer * 1.6) * 0.08;
-                girlModel.position.z = -0.4 + speedOffset; // 超激しく前後にピストン！
-                pulseController(session, 'right', 0.95, 80); // 右手が壊れるほどの最高激動バイブ
+                girlModel.position.z = -0.4 + speedOffset; 
+                pulseController(session, 'right', 0.95, 80); 
                 if (now > speechTimeout) { speechTimeout = now + 2500; subtitles.innerText = sexQuotes[Math.floor(Math.random() * sexQuotes.length)]; }
             }
             else if (currentPose === "autopaizuri") {
-                // 【自動パイズリマクロ】女の子の上半身（おっぱい）が前後にガクガクと擦り付けてくる動き
                 const breastOffset = Math.sin(macroTimer * 1.3) * 0.05;
                 girlModel.position.z = -0.45 + breastOffset; 
-                pulseController(session, 'right', 0.5, 45); // 柔らかくも激しい肉の圧迫バイブ
+                pulseController(session, 'right', 0.5, 45); 
                 if (now > speechTimeout) { speechTimeout = now + 3000; subtitles.innerText = paizuriQuotes[Math.floor(Math.random() * paizuriQuotes.length)]; }
             }
         }
@@ -357,19 +343,19 @@
 
         let rightTriggerReset = true; let rightStickReset = true;
 
-        // --- 6. VRモード起動 ---
+        // --- 7. VRモード起動処理（修正完了） ---
         let xrSession = null;
         function onVRButtonClick() {
             if (xrSession === null) {
                 navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['local-floor'] }).then(function (session) {
                     renderer.xr.setSession(session);
-                    document.getElementById('vr-button').textContent = 'VRを終了する';
+                    vrButton.textContent = 'VRを終了する';
                     xrSession = session;
                 });
             } else { xrSession.end(); xrSession = null; }
         }
 
-        // --- 7. メインループ ---
+        // --- 8. メインループ ---
         renderer.setAnimationLoop(function () {
             if (xrSession) {
                 checkPanelTouch();
@@ -380,7 +366,6 @@
                     if (source.gamepad && source.gamepad.axes) {
                         const axes = source.gamepad.axes; const buttons = source.gamepad.buttons;
                         
-                        // 移動
                         if (source.handedness === 'left' && axes.length >= 4 && !currentPose.startsWith("auto")) {
                             const speed = 0.03;
                             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
@@ -390,7 +375,6 @@
                             userGroup.position.addScaledVector(side, axes[2] * speed);
                         }
 
-                        // スナップターン
                         if (source.handedness === 'right' && axes.length >= 4) {
                             if (Math.abs(axes[2]) > 0.6) {
                                 if (rightStickReset) {
@@ -399,7 +383,6 @@
                                 }
                             } else { rightStickReset = true; }
 
-                            // 【右トリガーで状況に合わせた特製ミルク発射】
                             if (buttons[0] && buttons[0].pressed) {
                                 if (rightTriggerReset) {
                                     rightTriggerReset = false;
