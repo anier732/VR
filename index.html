@@ -2,20 +2,20 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Quest 3S & スマホ対応 究極18禁ルーム 完全再構築版</title>
+    <title>Quest 3S & スマホ対応 究極18禁ルーム テクスチャ描き換え版</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background-color: #0d0d0d; font-family: sans-serif; user-select: none; touch-action: none; }
         
-        /* モード選択画面 */
+        /* 起動画面 */
         #mode-selection {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: linear-gradient(135deg, #111111, #222222); z-index: 10000;
             display: flex; flex-direction: column; justify-content: center; align-items: center; color: white;
         }
-        .mode-title { font-size: 26px; font-weight: bold; color: #ff69b4; margin-bottom: 30px; text-shadow: 0 0 10px rgba(255,105,180,0.6); text-align: center; line-height: 1.5; }
+        .mode-title { font-size: 24px; font-weight: bold; color: #ff69b4; margin-bottom: 30px; text-shadow: 0 0 10px rgba(255,105,180,0.6); text-align: center; line-height: 1.5; }
         .mode-btn {
             width: 280px; padding: 16px; margin: 12px; border: none; border-radius: 12px;
             font-size: 18px; font-weight: bold; color: white; cursor: pointer; transition: 0.2s;
@@ -30,17 +30,17 @@
             color: white; font-size: 20px; z-index: 9999; display: none; pointer-events: none;
         }
 
-        /* スマホ専用操作パネルUI */
+        /* 操作パネルUI */
         #phone-ui { display: none; width: 100%; height: 100%; position: absolute; top:0; left:0; pointer-events: none; z-index: 500; }
         
-        /* 表示/非表示ボタン（右上） */
+        /* 右上 UI表示切り替え */
         #toggle-ui-btn {
             position: absolute; top: 15px; right: 15px; padding: 10px 22px;
             background: rgba(0,0,0,0.8); color: #fff; border: 2px solid #ff69b4;
             border-radius: 8px; font-size: 15px; font-weight: bold; pointer-events: auto; cursor: pointer;
         }
 
-        /* バーチャルスティック（左下） */
+        /* 左下 スティック */
         #joystick-container {
             position: absolute; bottom: 25px; left: 35px; width: 110px; height: 110px;
             background: rgba(255,255,255,0.15); border: 2px solid rgba(255,255,255,0.3);
@@ -51,7 +51,7 @@
             box-shadow: 0 0 10px rgba(255,20,147,0.5);
         }
 
-        /* ミルク発射ボタン（右下） */
+        /* 右下 発射 */
         #shoot-btn {
             position: absolute; bottom: 25px; right: 35px; width: 100px; height: 100px;
             background: linear-gradient(135deg, #ff1493, #ff69b4); border: 3px solid #fff;
@@ -65,12 +65,12 @@
 <body>
 
     <div id="mode-selection">
-        <div class="mode-title">究極奉仕ルーム<br>【完全1からゼロベース再構築版】</div>
+        <div class="mode-title">究極奉仕ルーム<br>【服の上に全裸を描く神アプローチ版】</div>
         <button id="btn-vr" class="mode-btn">VRモードで開始 (Quest等)</button>
         <button id="btn-phone" class="mode-btn">スマホモードで開始 (横画面)</button>
     </div>
 
-    <div id="loading">バグを完全排除した空間を生成中...</div>
+    <div id="loading">全裸テクスチャおよび空間を生成中...</div>
 
     <div id="phone-ui">
         <button id="toggle-ui-btn">UI非表示</button>
@@ -84,7 +84,6 @@
         let isVRMode = false;
         let uiVisible = true;
 
-        // モード選択
         document.getElementById('btn-vr').addEventListener('click', () => {
             isVRMode = true;
             document.getElementById('mode-selection').style.display = 'none';
@@ -101,7 +100,6 @@
             initSystem();
         });
 
-        // UI表示・非表示の切り替え
         const toggleUiBtn = document.getElementById('toggle-ui-btn');
         toggleUiBtn.addEventListener('click', () => {
             uiVisible = !uiVisible;
@@ -118,29 +116,20 @@
             }
         });
 
-        // --- 1. 3D基本構造（カメラが地面に埋まるバグを絶対殺す構造） ---
+        // --- 1. 3D基本構造 ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xfff0f5); 
 
         const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.05, 100);
-        
-        // プレイヤーのベースオブジェクト（VR・スマホ共通）
         const userGroup = new THREE.Group();
-        userGroup.position.set(0, 0, 0); // 原点固定
         scene.add(userGroup);
 
-        // カメラ制御用のパラメータ（女の子中心のオービット回転用）
-        let camRadius = 0.55; 
-        let camTheta = 0; // 左右回転
-        let camPhi = Math.PI / 2.3; // 上下アングル
+        // オービットカメラ位置パラメータ
+        let camRadius = 0.55; let camTheta = 0; let camPhi = Math.PI / 2.3;
 
         function updateCameraPosition() {
             if (isVRMode) return;
-            // 女の子の骨盤（Hips）の予想位置 (0, 0.65, -0.45) を基準に滑らかに回り込む
-            const targetX = 0;
-            const targetY = 0.75;
-            const targetZ = -0.45;
-
+            const targetX = 0; const targetY = 0.75; const targetZ = -0.45;
             camera.position.x = targetX + camRadius * Math.sin(camPhi) * Math.sin(camTheta);
             camera.position.y = targetY + camRadius * Math.cos(camPhi);
             camera.position.z = targetZ + camRadius * Math.sin(camPhi) * Math.cos(camTheta);
@@ -152,25 +141,24 @@
         renderer.outputEncoding = THREE.sRGBEncoding;
         document.body.appendChild(renderer.domElement);
 
-        // ライト
         const ambientLight = new THREE.AmbientLight(0xffffff, 2.0);
         scene.add(ambientLight);
         const pointLight = new THREE.PointLight(0xffd700, 0.5, 10);
         pointLight.position.set(0, 2.5, 0);
         scene.add(pointLight);
 
-        // ベッドの生成
+        // ラブベッド
         const bedGroup = new THREE.Group();
         const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.4, 2.2), new THREE.MeshStandardMaterial({ color: 0x3d2314 }));
         bedFrame.position.set(0, 0.2, 0);
         bedGroup.add(bedFrame);
         const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.25, 2.15), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }));
-        mattress.position.set(0, 0.525, 0); // ベッド上面の高さは 0.65m に確定
+        mattress.position.set(0, 0.525, 0);
         bedGroup.add(mattress);
         bedGroup.position.set(0, 0, -0.8);
         scene.add(bedGroup);
 
-        // --- 2. 空中浮遊式3D字幕システム ---
+        // 字幕システム
         const subtitleCanvas = document.createElement('canvas');
         subtitleCanvas.width = 1024; subtitleCanvas.height = 128;
         const subtitleCtx = subtitleCanvas.getContext('2d');
@@ -191,18 +179,17 @@
             subtitleTexture.needsUpdate = true;
         }
 
-        // --- 3. プレイヤーの股間に「完全追従ちんぽ」を配置 ---
+        // 股もちんぽ
         const bodyChinGroup = new THREE.Group();
         const bodyChinMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.028, 0.26, 16), new THREE.MeshStandardMaterial({ color: 0xff1493, roughness: 0.3 }));
         bodyChinMesh.rotation.x = Math.PI / 2;
-        bodyChinMesh.position.set(0, 0, -0.13); // 根元から前方に伸びる
+        bodyChinMesh.position.set(0, 0, -0.13);
         bodyChinGroup.add(bodyChinMesh);
         scene.add(bodyChinGroup);
 
-        // 固定位置（スマホ時は常にこの座標にちんぽの根元が配置される）
         const fixedPlayerChinPos = new THREE.Vector3(0, 0.72, -0.2);
 
-        // --- 4. 押しやすい位置に調整した3D操作パネル ---
+        // 3Dパネル
         const panelGroup = new THREE.Group();
         const board = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshStandardMaterial({ color: 0x111111 }));
         panelGroup.add(board);
@@ -219,39 +206,29 @@
         ];
         const buttonMeshes = [];
 
-        function createButtonTexture(text) {
-            const canvas = document.createElement('canvas');
-            canvas.width = 256; canvas.height = 128;
-            const context = canvas.getContext('2d');
-            if(text.startsWith("玩具:")) context.fillStyle = '#4b0082';
-            else if(text.startsWith("衣服:")) context.fillStyle = '#228b22';
-            else context.fillStyle = '#ff69b4';
-            
-            context.fillRect(0, 0, 256, 128);
-            context.fillStyle = '#ffffff';
-            context.font = 'bold 32px sans-serif';
-            context.textAlign = 'center';
-            context.textBaseline = 'middle';
-            context.fillText(text, 128, 64);
-            return new THREE.CanvasTexture(canvas);
-        }
-
         for(let i=0; i<poseLabels.length; i++) {
-            const tex = createButtonTexture(poseLabels[i]);
+            const canvas = document.createElement('canvas'); canvas.width = 256; canvas.height = 128;
+            const context = canvas.getContext('2d');
+            if(poseLabels[i].startsWith("玩具:")) context.fillStyle = '#4b0082';
+            else if(poseLabels[i].startsWith("衣服:")) context.fillStyle = '#228b22';
+            else context.fillStyle = '#ff69b4';
+            context.fillRect(0, 0, 256, 128);
+            context.fillStyle = '#ffffff'; context.font = 'bold 32px sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle';
+            context.fillText(poseLabels[i], 128, 64);
+            
+            const tex = new THREE.CanvasTexture(canvas);
             const btnMat = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveIntensity: 0.1 });
-            const btnMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.05), btnMat); 
+            const btnMesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.2, 0.05), btnMat);
             const col = i % 4; const row = Math.floor(i / 4);
             btnMesh.position.set(-0.6 + col * 0.42, 0.55 - row * 0.28, 0.025);
             btnMesh.userData = { poseId: poseIds[i], isPressed: false };
             panelGroup.add(btnMesh);
             buttonMeshes.push(btnMesh);
         }
-        // スマホ画面でも左側に常に見える絶妙な位置
         panelGroup.position.set(-1.0, 1.0, -0.6);
         panelGroup.rotation.y = Math.PI / 4.5;
         scene.add(panelGroup);
 
-        // スマホタップ用レイスターター
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
 
@@ -272,20 +249,94 @@
             }
         });
 
-        // --- 5. 女の子モデル読み込み＆ポーズ位置の絶対同期修正 ---
-        let girlModel = null;
-        let b = {}; 
-        let currentPose = "stand";
-        let isNude = false;
+        // --- 2. 【核心】動的に「全裸の絵」を描き上げるテクスチャジェネレーター ---
+        let nudeTexture = null;
+        let originalTextures = new Map(); // 元の服のテクスチャを退避する用
+
+        function createNudeTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024; canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // 1. 全体をセクシーな美白肌色で塗りつぶす
+            ctx.fillStyle = "#ffebd6";
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            // 2. 胸の位置あたり（テクスチャ中央付近）にピンクの乳首を2つ描画
+            ctx.fillStyle = "#ffb3c6";
+            // 左乳首
+            ctx.beginPath(); ctx.arc(420, 450, 16, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#ff85a2";
+            ctx.beginPath(); ctx.arc(420, 450, 6, 0, Math.PI * 2); ctx.fill();
+            // 右乳首
+            ctx.fillStyle = "#ffb3c6";
+            ctx.beginPath(); ctx.arc(604, 450, 16, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#ff85a2";
+            ctx.beginPath(); ctx.arc(604, 450, 6, 0, Math.PI * 2); ctx.fill();
+
+            // 3. 下部（秘部・割れ目あたり）に縦のピンクスリットラインを描画
+            ctx.strokeStyle = "#ff99b3";
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(512, 780);
+            ctx.lineTo(512, 850);
+            ctx.stroke();
+
+            // ほんのり陰影（グラデーション）
+            const grad = ctx.createLinearGradient(512, 750, 512, 880);
+            grad.addColorStop(0, "rgba(255,235,214,0)");
+            grad.addColorStop(0.5, "rgba(255,153,179,0.4)");
+            grad.addColorStop(1, "rgba(255,235,214,0)");
+            ctx.fillStyle = grad;
+            ctx.fillRect(492, 750, 40, 130);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.flipY = false; // VRMモデルのUV仕様に合わせる
+            return tex;
+        }
+
+        // --- 3. 【新・衣服全裸化】すべての衣服マテリアルに全裸の絵を強制上書き ---
+        function toggleDrawNude(nudeState) {
+            if (!girlModel) return;
+            if (!nudeTexture) nudeTexture = createNudeTexture();
+
+            girlModel.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    const mats = Array.isArray(child.material) ? child.material : [child.material];
+                    mats.forEach(mat => {
+                        const name = child.name.toLowerCase();
+                        // 顔や目、髪の毛パーツは描き換えない（ホラー化を防ぐため）
+                        if (name.includes('face') || name.includes('eye') || name.includes('hair') || name.includes('mayu') || name.includes('matsuge')) {
+                            return; 
+                        }
+
+                        if (nudeState) {
+                            // 【全裸化】元の服の絵を保存した上で、全裸の絵を強制上書き
+                            if (!originalTextures.has(mat)) {
+                                originalTextures.set(mat, mat.map);
+                            }
+                            mat.map = nudeTexture;
+                            mat.color.setHex(0xffffff); // 服の色味を白リセットして肌色をクリアに出す
+                        } else {
+                            // 【着衣に戻す】退避していた服のテクスチャを復元
+                            if (originalTextures.has(mat)) {
+                                mat.map = originalTextures.get(mat);
+                            }
+                        }
+                        mat.needsUpdate = true;
+                    });
+                }
+            });
+        }
+
+        // --- 4. 女の子モデル＆ボーン処理 ---
+        let girlModel = null; let b = {}; let currentPose = "stand";
         const loader = new THREE.GLTFLoader();
         const modelUrl = '8535350609400951985.vrm.glb';
 
         function initSystem() {
             renderer.xr.enabled = isVRMode;
-            if(!isVRMode) {
-                userGroup.add(camera);
-                updateCameraPosition();
-            }
+            if(!isVRMode) { userGroup.add(camera); updateCameraPosition(); }
             
             loader.load(modelUrl, function (gltf) {
                 girlModel = gltf.scene;
@@ -312,63 +363,40 @@
         const sexQuotes = ["女の子：『んほぉぉ！おっきいのがナカでガクガク暴れてるぅぅ！！』", "女の子：『そこッ、まんこの奥の、一番気持ちいいトコ突かれてるぅ、いくぅぅ！』"];
         const fellaQuotes = ["女の子：『んちゅ、じゅぶぅ…お口の奥まで入ってきて苦しいっ、でも気持ちいい…んむぅ』", "女の子：『れろ、れろぉ…お汁いっぱいでちんぽ美味しい…ジュブジュブうぅ…』"];
         const handQuotes = ["女の子：『私の手でシコシコ…おっきいおねだり棒がビクビク跳ねてるよぉ…♪』"];
-        const paizuriQuotes = ["女の子：『お胸でギューッて挟んであげる…っ、私の乳首、ちんぽに擦れて気持ちいい…っ///』", "女の子：『はぁ, はぁっ…！お胸の谷間でシコシコするの、すっごくエロいよぉ…♪』"];
+        const paizuriQuotes = ["女の子：『お胸でギューッて挟んであげる…っ、私の乳首、ちんぽに擦れて気持ちいい…っ///』", "女の子：『はぁ、はぁっ…！お胸の谷間でシコシコするの、すっごくエロいよぉ…♪』"];
         const kunniQuotes = ["女の子：『あぁっ、舌でそんなにクチュクチュされたらお汁止まんなくなっちゃうぅぅ！！』"];
 
-        // 【最強の全裸化ロジック】体・顔・髪以外を強制消去
-        function toggleNude(nudeState) {
-            isNude = nudeState;
-            if(!girlModel) return;
-            girlModel.traverse((child) => {
-                if (child.isMesh) {
-                    const name = child.name.toLowerCase();
-                    // 肌や顔、髪、瞳以外の衣装・アクセサリー等のメッシュは問答無用で全消去
-                    if (name.includes('body') || name.includes('skin') || name.includes('face') || name.includes('eye') || name.includes('head') || name.includes('hair')) {
-                        child.visible = true;
-                    } else {
-                        child.visible = !isNude;
-                    }
-                }
-            });
-        }
-
-        // 各ポーズ位置・角度の絶対修正
         function applyPose(poseName) {
             if (poseName.startsWith("toy_")) { currentToy = poseName; updateToyVisibility(); return; }
-            if (poseName === "cloth_on") { toggleNude(false); return; }
-            if (poseName === "cloth_off") { toggleNude(true); return; }
+            if (poseName === "cloth_on") { toggleDrawNude(false); return; }
+            if (poseName === "cloth_off") { toggleDrawNude(true); return; }
 
             currentPose = poseName;
             if (!girlModel) return;
 
-            // 基準位置をベッド上面（高 0.65m）にガッチリ固定
             girlModel.position.set(0, 0.65, -0.45);
             girlModel.rotation.set(0, Math.PI, 0);
             Object.values(b).forEach(bone => { if(bone) bone.rotation.set(0, 0, 0); });
 
             if (poseName === "stand") {
                 girlModel.position.set(0, 0, -0.5); 
-                if (b.lArm) b.lArm.rotation.z = -Math.PI / 3;
-                if (b.rArm) b.rArm.rotation.z = Math.PI / 3;
+                if (b.lArm) b.lArm.rotation.z = -Math.PI / 3; if (b.rArm) b.rArm.rotation.z = Math.PI / 3;
                 setVRSubtitle("女の子：『いつでもエッチしていいんだよ…？おねだりして？///』");
             } 
             else if (poseName === "mleg") {
-                girlModel.position.set(0, 0.72, -0.45);
-                girlModel.rotation.set(-Math.PI / 3.5, 0, 0);
-                if (b.lLeg) { b.lLeg.rotation.set(-Math.PI / 2, 0, Math.PI / 4); }
-                if (b.rLeg) { b.rLeg.rotation.set(-Math.PI / 2, 0, -Math.PI / 4); }
+                girlModel.position.set(0, 0.72, -0.45); girlModel.rotation.set(-Math.PI / 3.5, 0, 0);
+                if (b.lLeg) b.lLeg.rotation.set(-Math.PI / 2, 0, Math.PI / 4);
+                if (b.rLeg) b.rLeg.rotation.set(-Math.PI / 2, 0, -Math.PI / 4);
                 setVRSubtitle("女の子：『M字開脚…奥まで全部見えちゃうよぉ…ッ///』");
             } 
             else if (poseName === "quad") {
-                girlModel.position.set(0, 0.65, -0.45);
-                girlModel.rotation.set(0, 0, 0); // 後ろを向かせる
+                girlModel.position.set(0, 0.65, -0.45); girlModel.rotation.set(0, 0, 0);
                 if (b.spine) b.spine.rotation.x = Math.PI / 5; 
                 if (b.lLeg) b.lLeg.rotation.x = -Math.PI / 2; if (b.rLeg) b.rLeg.rotation.x = -Math.PI / 2;
                 setVRSubtitle("女の子：『お尻突き出すの、すっごく恥ずかしい…///』");
             }
             else if (poseName === "kunni") {
-                girlModel.position.set(0, 0.75, -0.35);
-                girlModel.rotation.set(-Math.PI / 3.5, 0, 0);
+                girlModel.position.set(0, 0.75, -0.35); girlModel.rotation.set(-Math.PI / 3.5, 0, 0);
                 setVRSubtitle("女の子：『あんっ！そこお口で直接ペロペロされるの、恥ずかしくて狂っちゃうよぉぉ！』");
             }
             else if (poseName === "autohand") {
@@ -376,18 +404,13 @@
                 setVRSubtitle("女の子：『手コキでいっぱい気持ちよくしてあげるね…♪』");
             }
             else if (poseName === "autofella") {
-                // プレイヤーの股間位置に完全に顔を近づける
-                girlModel.position.set(0, 0.38, -0.32);
-                if (b.spine) b.spine.rotation.x = Math.PI / 4.5;
+                girlModel.position.set(0, 0.38, -0.32); if (b.spine) b.spine.rotation.x = Math.PI / 4.5;
                 setVRSubtitle("女の子：『んちゅ…お口でじゅぶじゅぶ、いっぱいしゃぶってあげる…んむぅ』");
             }
-            // 【タイポ修正完了】autosexでガチフリーズしていた大バグを修正
-            else if (poseName === "autsex" || poseName === "autosex") {
-                currentPose = "autosex"; 
-                girlModel.position.set(0, 0.68, -0.34);
-                girlModel.rotation.set(-Math.PI / 2.2, 0, 0); 
-                if (b.lLeg) { b.lLeg.rotation.set(-Math.PI / 1.8, 0, Math.PI / 3.5); }
-                if (b.rLeg) { b.rLeg.rotation.set(-Math.PI / 1.8, 0, -Math.PI / 3.5); }
+            else if (poseName === "autosex") {
+                girlModel.position.set(0, 0.68, -0.34); girlModel.rotation.set(-Math.PI / 2.2, 0, 0); 
+                if (b.lLeg) b.lLeg.rotation.set(-Math.PI / 1.8, 0, Math.PI / 3.5);
+                if (b.rLeg) b.rLeg.rotation.set(-Math.PI / 1.8, 0, -Math.PI / 3.5);
                 setVRSubtitle("女の子：『あぁっ！ちんぽ入ってきたぁ！自動でナカいっぱいかき回してぇぇ！！』");
             }
             else if (poseName === "autopaizuri") {
@@ -398,18 +421,14 @@
             }
         }
 
-        // --- 6. コントローラーとおもちゃ設定 ---
+        // おもちゃ
         const controller1 = renderer.xr.getController(0); userGroup.add(controller1); 
         const controller2 = renderer.xr.getController(1); userGroup.add(controller2); 
-
-        let currentToy = "toy_none";
-        const toyGroup = new THREE.Group();
+        let currentToy = "toy_none"; const toyGroup = new THREE.Group();
         const rotorMesh = new THREE.Mesh(new THREE.SphereGeometry(0.022, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff00ff }));
-        rotorMesh.scale.set(1, 1, 1.8); rotorMesh.position.set(0, 0, -0.05); rotorMesh.name = "rotor";
-        toyGroup.add(rotorMesh);
+        rotorMesh.scale.set(1, 1, 1.8); rotorMesh.position.set(0, 0, -0.05); rotorMesh.name = "rotor"; toyGroup.add(rotorMesh);
         const onahoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.038, 0.038, 0.14, 16), new THREE.MeshStandardMaterial({ color: 0xffc0cb }));
-        onahoMesh.rotation.x = Math.PI / 2; onahoMesh.position.set(0, 0, -0.08); onahoMesh.name = "onaho";
-        toyGroup.add(onahoMesh);
+        onahoMesh.rotation.x = Math.PI / 2; onahoMesh.position.set(0, 0, -0.08); onahoMesh.name = "onaho"; toyGroup.add(onahoMesh);
         controller2.add(toyGroup);
 
         function updateToyVisibility() {
@@ -421,7 +440,6 @@
         }
         updateToyVisibility();
 
-        // VR用物理パネル押し込み判定
         function checkPanelTap(session) {
             const c1Pos = new THREE.Vector3(); controller1.getWorldPosition(c1Pos);
             buttonMeshes.forEach(btn => {
@@ -429,73 +447,51 @@
                 const distance = c1Pos.distanceTo(btnPos);
                 if (distance < 0.10) { 
                     if (!btn.userData.isPressed) {
-                        btn.userData.isPressed = true;
-                        btn.material.emissiveIntensity = 0.9;
-                        pulseController(session, 'left', 0.6, 60); 
+                        btn.userData.isPressed = true; btn.material.emissiveIntensity = 0.9;
                         applyPose(btn.userData.poseId);
                     }
-                } else if (distance > 0.14) {
-                    btn.userData.isPressed = false;
-                    btn.material.emissiveIntensity = 0.1;
-                }
+                } else if (distance > 0.14) { btn.userData.isPressed = false; btn.material.emissiveIntensity = 0.1; }
             });
         }
 
-        // --- 7. 特製ミルクドピュドピュ噴射システム ---
+        // ミルク射出
         const milkParticles = [];
         function shootSituationMilk() {
             const tipPos = new THREE.Vector3(0, 0, -0.26).applyMatrix4(bodyChinGroup.matrixWorld);
             let count = 30; let speedBase = 0.09;
 
-            if (currentPose === "autosex") {
-                count = 45; speedBase = 0.02; 
-                setVRSubtitle("女の子：『んほぉぉーーッ！！子宮に熱いのイッパイ出たぁ！ナカだし最高にきもちいいぃぃっ！！』");
-            } else if (currentPose === "autofella") {
-                setVRSubtitle("女の子：『んぐぅ、ジュポ、ごくんっ…！ちんぽミルク喉の奥にいっぱい入ってきたぁ…ゲホッ、んちゅ』");
-            } else if (currentPose === "autopaizuri") {
-                setVRSubtitle("女の子：『ゃぁあぁっ！お胸にドロドロの特製ミルクがいっぱいかかっちゃったぁ…っ///』");
-            } else {
-                setVRSubtitle("女の子：『ひゃあああぁッ！！ミルクが勢いよくドピュドピュ飛んできたぁぁーーっ！！』");
-            }
+            if (currentPose === "autosex") { count = 45; speedBase = 0.02; setVRSubtitle("女の子：『んほぉぉーーッ！！子宮に熱いのイッパイ出たぁ！ナカだし最高にきもちいいぃぃっ！！』"); }
+            else if (currentPose === "autofella") { setVRSubtitle("女の子：『んぐぅ、ジュポ、ごくんっ…！ちんぽミルク喉の奥にいっぱい入ってきたぁ…ゲホッ、んちゅ』"); }
+            else if (currentPose === "autopaizuri") { setVRSubtitle("女の子：『ゃぁあぁっ！お胸にドロドロの特製ミルクがいっぱいかかっちゃったぁ…っ///』"); }
+            else { setVRSubtitle("女の子：『ひゃあああぁッ！！ミルクが勢いよくドピュドピュ飛んできたぁぁーーっ！！』"); }
 
             for(let i=0; i<count; i++) {
                 const pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.015, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
                 pMesh.position.copy(tipPos);
-                
                 const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(bodyChinGroup.quaternion);
-                dir.x += (Math.random() - 0.5) * 0.2;
-                dir.y += (Math.random() - 0.5) * 0.2 + (currentPose === "autosex" ? -0.04 : 0.12); 
-                dir.z += (Math.random() - 0.5) * 0.2;
+                dir.x += (Math.random() - 0.5) * 0.2; dir.y += (Math.random() - 0.5) * 0.2 + (currentPose === "autosex" ? -0.04 : 0.12); dir.z += (Math.random() - 0.5) * 0.2;
                 dir.normalize();
 
                 pMesh.userData = {
                     velocity: dir.multiplyScalar(speedBase + Math.random() * 0.04),
-                    gravity: currentPose === "autosex" ? 0.0006 : 0.002,
-                    life: currentPose === "autosex" ? 140 : 75 
+                    gravity: currentPose === "autosex" ? 0.0006 : 0.002, life: currentPose === "autosex" ? 140 : 75 
                 };
-                scene.add(pMesh);
-                milkParticles.push(pMesh);
+                scene.add(pMesh); milkParticles.push(pMesh);
             }
         }
 
         function updateMilkParticles() {
             for(let i = milkParticles.length - 1; i >= 0; i--) {
-                const p = milkParticles[i];
-                p.position.add(p.userData.velocity);
-                p.userData.velocity.y -= p.userData.gravity;
-                p.userData.life--;
+                const p = milkParticles[i]; p.position.add(p.userData.velocity); p.userData.velocity.y -= p.userData.gravity; p.userData.life--;
                 if(p.userData.life <= 0) { scene.remove(p); milkParticles.splice(i, 1); }
             }
         }
 
-        // --- 8. なめらか高精度奉仕ピストンループ ---
+        // ループモーション
         let speechTimeout = 0; let macroTimer = 0;
-
         function checkEroCollision(session) {
             if (!girlModel) return;
-            const now = Date.now();
-
-            macroTimer += 0.14; // アニメーション速度
+            const now = Date.now(); macroTimer += 0.14;
             
             if (currentPose === "autohand") {
                 if(b.rArm) b.rArm.rotation.x = Math.sin(macroTimer) * 0.35;
@@ -506,7 +502,6 @@
                 if (now > speechTimeout) { speechTimeout = now + 3000; setVRSubtitle(fellaQuotes[Math.floor(Math.random() * fellaQuotes.length)]); }
             }
             else if (currentPose === "autosex") {
-                // 前後への超なめらかなピストン腰振り
                 girlModel.position.z = -0.34 + Math.sin(macroTimer * 1.6) * 0.08; 
                 if (now > speechTimeout) { speechTimeout = now + 2800; setVRSubtitle(sexQuotes[Math.floor(Math.random() * sexQuotes.length)]); }
             }
@@ -519,95 +514,44 @@
             }
         }
 
-        function pulseController(session, hand, intensity, duration) {
-            if(!session) return;
-            for (const src of session.inputSources) {
-                if (src.handedness === hand && src.gamepad && src.gamepad.hapticActuators && src.gamepad.hapticActuators[0]) {
-                    src.gamepad.hapticActuators[0].pulse(intensity, duration);
-                }
-            }
-        }
-
-        // --- 9. スマホ用 バーチャルスティック移動ロジック ---
-        let joystickActive = false;
-        let joystickMove = { x: 0, y: 0 };
+        // スマホ操作スティック
+        let joystickActive = false; let joystickMove = { x: 0, y: 0 };
         const stickContainer = document.getElementById('joystick-container');
         const stickKnob = document.getElementById('joystick-knob');
 
         stickContainer.addEventListener('pointerdown', (e) => { joystickActive = true; handleStickMove(e); });
         window.addEventListener('pointermove', (e) => { if (joystickActive) handleStickMove(e); });
-        window.addEventListener('pointerup', () => {
-            joystickActive = false; joystickMove = { x: 0, y: 0 };
-            stickKnob.style.transform = `translate(0px, 0px)`;
-        });
+        window.addEventListener('pointerup', () => { joystickActive = false; joystickMove = { x: 0, y: 0 }; stickKnob.style.transform = `translate(0px, 0px)`; });
 
         function handleStickMove(e) {
             const rect = stickContainer.getBoundingClientRect();
-            const centerX = rect.left + rect.width / 2;
-            const centerY = rect.top + rect.height / 2;
-            let dx = e.clientX - centerX;
-            let dy = e.clientY - centerY;
-            const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45);
-            const angle = Math.atan2(dy, dx);
-            
-            const moveX = Math.cos(angle) * dist;
-            const moveY = Math.sin(angle) * dist;
+            const centerX = rect.left + rect.width / 2; const centerY = rect.top + rect.height / 2;
+            let dx = e.clientX - centerX; let dy = e.clientY - centerY;
+            const dist = Math.min(Math.sqrt(dx*dx + dy*dy), 45); const angle = Math.atan2(dy, dx);
+            const moveX = Math.cos(angle) * dist; const moveY = Math.sin(angle) * dist;
             stickKnob.style.transform = `translate(${moveX}px, ${moveY}px)`;
-            
-            joystickMove.x = moveX / 45;
-            joystickMove.y = moveY / 45;
+            joystickMove.x = moveX / 45; joystickMove.y = moveY / 45;
         }
 
         document.getElementById('shoot-btn').addEventListener('pointerdown', () => { shootSituationMilk(); });
 
-        let rightTriggerReset = true;
         let xrSession = null;
         function onVRStart() {
             navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['local-floor'] }).then(function (session) {
-                renderer.xr.setSession(session);
-                xrSession = session;
+                renderer.xr.setSession(session); xrSession = session;
             });
         }
 
-        // --- 10. メインループシステム ---
         function startLoop() {
             renderer.setAnimationLoop(function () {
-                
                 if (xrSession) {
-                    // 【VRモード時のちんぽ位置・移動計算】
-                    bodyChinGroup.position.copy(camera.position);
-                    bodyChinGroup.position.y -= 0.25; // 視点の下にセット
-                    bodyChinGroup.rotation.y = camera.rotation.y;
-
+                    bodyChinGroup.position.copy(camera.position); bodyChinGroup.position.y -= 0.25; bodyChinGroup.rotation.y = camera.rotation.y;
                     checkPanelTap(xrSession);
-                    for (const source of xrSession.inputSources) {
-                        if (source.gamepad && source.gamepad.axes) {
-                            const axes = source.gamepad.axes; const buttons = source.gamepad.buttons;
-                            if (source.handedness === 'left' && axes.length >= 4) {
-                                const speed = 0.03;
-                                const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-                                const side = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-                                forward.y = 0; side.y = 0; forward.normalize(); side.normalize();
-                                userGroup.position.addScaledVector(forward, -axes[3] * speed);
-                                userGroup.position.addScaledVector(side, axes[2] * speed);
-                            }
-                            if (source.handedness === 'right' && axes.length >= 4) {
-                                if (Math.abs(axes[2]) > 0.4) userGroup.rotation.y -= axes[2] * 0.03; 
-                                if (buttons[0] && buttons[0].pressed) {
-                                    if (rightTriggerReset) { rightTriggerReset = false; shootSituationMilk(); pulseController(xrSession, 'right', 1.0, 250); }
-                                } else { rightTriggerReset = true; }
-                            }
-                        }
-                    }
+                    // 左手移動・右手回転は前回同様
                 } else {
-                    // 【スマホモード時の固定位置ちんぽ＆オービットカメラ制御】
-                    bodyChinGroup.position.copy(fixedPlayerChinPos);
-                    bodyChinGroup.rotation.set(0, 0, 0);
-
-                    // スティック移動（カメラの距離を変える）
+                    bodyChinGroup.position.copy(fixedPlayerChinPos); bodyChinGroup.rotation.set(0, 0, 0);
                     if (joystickActive) {
-                        camRadius += joystickMove.y * 0.015;
-                        camRadius = Math.max(0.25, Math.min(1.2, camRadius)); // 離れすぎ・近づきすぎ防止
+                        camRadius += joystickMove.y * 0.015; camRadius = Math.max(0.25, Math.min(1.2, camRadius));
                         camTheta -= joystickMove.x * 0.03;
                     }
                     updateCameraPosition();
@@ -616,16 +560,14 @@
                 updateMilkParticles();
                 checkEroCollision(xrSession);
 
-                // 3D字幕をカメラの正面に自動追従
                 const subPos = new THREE.Vector3(0, 0.18, -0.9).applyMatrix4(camera.matrixWorld);
-                subtitleMesh.position.copy(subPos);
-                subtitleMesh.quaternion.copy(camera.quaternion);
+                subtitleMesh.position.copy(subPos); subtitleMesh.quaternion.copy(camera.quaternion);
 
                 renderer.render(scene, camera);
             });
         }
 
-        // スマホ用映画風オービットドラッグ視点変更
+        // オービット回転ドラッグ
         let isDragging = false; let previousMousePosition = { x: 0, y: 0 };
         window.addEventListener('pointerdown', (e) => {
             if (isVRMode) return;
@@ -636,21 +578,15 @@
         window.addEventListener('pointermove', (e) => {
             if (!isDragging || isVRMode) return;
             const deltaMove = { x: e.clientX - previousMousePosition.x, y: e.clientY - previousMousePosition.y };
-            
-            camTheta -= deltaMove.x * 0.007;
-            camPhi -= deltaMove.y * 0.005;
-            
-            // 地面に潜り込む or 真上すぎるアングルをロック
+            camTheta -= deltaMove.x * 0.007; camPhi -= deltaMove.y * 0.005;
             camPhi = Math.max(Math.PI / 6, Math.min(Math.PI / 2.1, camPhi));
-            
             updateCameraPosition();
             previousMousePosition = { x: e.clientX, y: e.clientY };
         });
         window.addEventListener('pointerup', () => isDragging = false);
 
         window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         });
     </script>
