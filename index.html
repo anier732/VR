@@ -2,176 +2,187 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>VRイチャイチャ空間</title>
+    <title>Quest 3S対応 VRイチャイチャゲーム</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #1a1a1a; font-family: 'Helvetica Neue', sans-serif; }
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: sans-serif; }
+        /* 字幕のデザイン */
         #subtitles {
             position: absolute; bottom: 15%; width: 100%; text-align: center;
             color: #fff; font-size: 26px; font-weight: bold;
             text-shadow: 3px 3px 6px #000, -3px -3px 6px #000;
             pointer-events: none; z-index: 10;
         }
-        #info {
-            position: absolute; top: 15px; width: 100%; text-align: center;
-            color: #ffb6c1; font-size: 16px; font-weight: bold; pointer-events: none;
-            text-shadow: 1px 1px 2px #000;
+        /* VR開始ボタンのデザイン */
+        #vr-button {
+            position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+            padding: 15px 30px; background: #ff69b4; color: white; font-size: 20px;
+            font-weight: bold; border: none; border-radius: 10px; cursor: pointer; z-index: 999;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: none;
         }
+        /* ロード画面 */
         #loading {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            color: white; font-size: 20px; z-index: 100; pointer-events: none;
+            color: white; font-size: 22px; z-index: 100;
         }
     </style>
 </head>
 <body>
 
-    <div id="loading">女の子を呼び出しています...</div>
-    <div id="info">【操作】画面ドラッグで「なでなで」 / W,A,S,Dキー（または画面タップ）で接近</div>
-    <div id="subtitles">（準備中...）</div>
+    <div id="loading">女の子をルームに呼んでいます...</div>
+    <div id="subtitles">（Quest 3Sのブラウザで開いて、下のボタンを押してね）</div>
+    <button id="vr-button">VRモードを起動する</button>
 
     <script>
-        // --- 1. 基本設定（真っ暗対策：明るい背景と強いライト） ---
+        // --- 1. 3D空間の基本設定（真っ暗対策：明るい背景と強いライト） ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xfff5f5); // 優しいピンクホワイトの部屋
 
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 1.4, 1.5); // 女の子の顔の高さ（約1.4m）にカメラを配置
+        const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        // VR空間の基準点（地面）を設定。プレイヤーの身長はQuest側から自動反映されます
+        const userGroup = new THREE.Group();
+        userGroup.add(camera);
+        scene.add(userGroup);
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.outputEncoding = THREE.sRGBEncoding; // 色を綺麗に出す
+        renderer.outputEncoding = THREE.sRGBEncoding; // キャラの色を綺麗に出す
+        renderer.xr.enabled = true; // 【超重要】WebXR（VRモード）を有効化
         document.body.appendChild(renderer.domElement);
 
-        // 明るい環境光を追加（モデルが真っ黒になるのを防ぐ）
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
+        // 明るいライト（モデルが真っ黒になるのを絶対に防ぐ）
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
         scene.add(ambientLight);
-
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(2, 4, 3);
+        dirLight.position.set(2, 5, 3);
         scene.add(dirLight);
 
-        // --- 2. 提供されたGLBファイルの読み込み ---
+        // 地面（位置をわかりやすくするためのグリッド床）
+        const gridHelper = new THREE.GridHelper(10, 10, 0xff69b4, 0xcccccc);
+        gridHelper.position.y = 0;
+        scene.add(gridHelper);
+
+        // --- 2. あなたがくれた女の子の3Dモデル（girl.glb）を自動読み込み ---
         let girlModel = null;
-        let girlHead = null; // 目線追従用の頭部ボーン
+        let girlHeadBone = null; // 目線追従用の頭ボーン
         const loader = new THREE.GLTFLoader();
 
-        // index.htmlと同じフォルダにある「girl.glb」を読み込む
-        loader.load(
-            'girl.glb',
-            function (gltf) {
-                girlModel = gltf.scene;
-                scene.add(girlModel);
+        // index.htmlと同じフォルダにある「girl.glb」を読み込む設定
+        loader.load('girl.glb', function (gltf) {
+            girlModel = gltf.scene;
+            scene.add(girlModel);
 
-                // モデルの初期位置と向きを調整（カメラの正面、地面に立たせる）
-                girlModel.position.set(0, 0, 0);
-                girlModel.rotation.y = Math.PI; // カメラの方を向かせる
+            // プレイヤーの目の前（1メートル先）に女の子を配置。向きをプレイヤー側へ。
+            girlModel.position.set(0, 0, -1.0);
+            girlModel.rotation.y = 0; // 正面を向かせる
 
-                // モデル内の「頭（Head）」に相当するボーンを自動探索
-                girlModel.traverse((child) => {
-                    if (child.isMesh) {
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                    }
-                    // ボーン名に「head」が含まれていたら目線追従用にキープ
-                    if (child.isBone && child.name.toLowerCase().includes('head')) {
-                        girlHead = child;
+            // モデル内の「頭（Head）」に相当するボーンを自動探索
+            girlModel.traverse((child) => {
+                if (child.isBone && child.name.toLowerCase().includes('head')) {
+                    girlHeadBone = child;
+                }
+            });
+
+            // ロード画面を消してボタンを表示
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('subtitles').innerText = "女の子：『あ、来てくれた！待ってたよ？』";
+            
+            // Quest 3SのブラウザがVRに対応しているかチェックしてボタンを出す
+            if (navigator.xr) {
+                navigator.xr.isSessionSupported('immersive-vr').then(function (supported) {
+                    if (supported) {
+                        const btn = document.getElementById('vr-button');
+                        btn.style.display = 'block';
+                        btn.addEventListener('click', onVRButtonClick);
                     }
                 });
-
-                // ロード画面を消す
-                document.getElementById('loading').style.display = 'none';
-                document.getElementById('subtitles').innerText = "女の子：『あ、来てくれたんだ！待ってたよ？』";
-            },
-            function (xhr) {
-                // 読み込み進捗
-                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
-            },
-            function (error) {
-                console.error('エラーが発生しました:', error);
-                document.getElementById('loading').innerText = "ファイルの読み込みに失敗しました。ファイル名が 'girl.glb' か確認してください。";
             }
-        );
+        }, null, function (err) {
+            console.error(err);
+            document.getElementById('loading').innerText = "girl.glb が同じフォルダに見つかりません。";
+        });
 
-        // --- 3. イチャイチャ・インタラクション判定 ---
-        const subtitles = document.getElementById('subtitles');
-        const raycaster = new THREE.Raycaster();
-        const pointer = new THREE.Vector2();
-        let isPointerDown = false;
+        // --- 3. Questのコントローラー取得となでなで判定の設定 ---
+        const controller1 = renderer.xr.getController(0);
+        scene.add(controller1);
+        const controller2 = renderer.xr.getController(1);
+        scene.add(controller2);
 
-        function checkInteraction(event) {
-            if (!girlModel) return;
-
-            const clientX = event.clientX || (event.touches && event.touches[0].clientX);
-            const clientY = event.clientY || (event.touches && event.touches[0].clientY);
-            
-            if (clientX === undefined || clientY === undefined) return;
-
-            pointer.x = (clientX / window.innerWidth) * 2 - 1;
-            pointer.y = -(clientY / window.innerHeight) * 2 + 1;
-
-            raycaster.setFromCamera(pointer, camera);
-            // 女の子のモデル全体への当たり判定
-            const intersects = raycaster.intersectObject(girlModel, true);
-
-            if (intersects.length > 0) {
-                // 当たった位置の高さが「上の方（頭付近）」なら、なでなで判定
-                const hitPointY = intersects[0].point.y;
-                if (hitPointY > 1.2) {
-                    subtitles.innerText = "女の子：『んぅ…あたま、なでなでするの気持ちいい……♪』";
-                    return;
-                }
-            }
-
-            // なでていない時は距離でセリフを変える
-            const dist = camera.position.distanceTo(girlModel.position);
-            if (dist < 0.6) {
-                subtitles.innerText = "女の子：『ちょっと、急に近すぎるよぉ……///』";
-            } else if (dist < 1.0) {
-                subtitles.innerText = "女の子：『えへへ、近くにいてくれるの嬉しいな』";
+        // --- 4. VRモードの開始・終了処理 ---
+        let xrSession = null;
+        function onVRButtonClick() {
+            if (xrSession === null) {
+                navigator.xr.requestSession('immersive-vr', { requiredFeatures: ['local-floor'] }).then(function (session) {
+                    renderer.xr.setSession(session);
+                    document.getElementById('vr-button').textContent = 'VRを終了する';
+                    xrSession = session;
+                });
             } else {
-                subtitles.innerText = "女の子：『ねえねえ、もっとこっち来て？』";
+                xrSession.end();
+                document.getElementById('vr-button').textContent = 'VRモードを起動する';
+                xrSession = null;
             }
         }
 
-        // マウス・タッチイベント
-        window.addEventListener('pointerdown', (e) => { isPointerDown = true; checkInteraction(e); });
-        window.addEventListener('pointermove', (e) => { if (isPointerDown) checkInteraction(e); });
-        window.addEventListener('pointerup', () => { isPointerDown = false; });
-
-        // キーボードでの移動（近づく・離れる）
-        window.addEventListener('keydown', (e) => {
-            const speed = 0.05;
-            if (e.key === 'w' || e.key === 'ArrowUp') camera.position.z -= speed; // 近づく
-            if (e.key === 's' || e.key === 'ArrowDown') camera.position.z += speed; // 離れる
-            if (e.key === 'a' || e.key === 'ArrowLeft') camera.position.x -= speed;
-            if (e.key === 'd' || e.key === 'ArrowRight') camera.position.x += speed;
+        // --- 5. メインループ（QuestのVR描画サイクル・常時実行） ---
+        renderer.setAnimationLoop(function () {
             
-            // 移動した後に距離判定を更新
-            checkInteraction({ clientX: window.innerWidth/2, clientY: window.innerHeight/2 });
-        });
+            // プレイヤーの位置（HMDカメラの位置）を取得
+            const headsetPos = new THREE.Vector3();
+            camera.getWorldPosition(headsetPos);
 
-        // --- 4. アニメーションループ（常時実行） ---
-        function animate() {
-            requestAnimationFrame(animate);
-
-            // 女の子のモデルがある場合、常にカメラ（あなた）の方向を向かせる
             if (girlModel) {
-                // 頭のボーンがある場合は、頭だけをカメラに向ける（リアルな目線追従）
-                if (girlHead) {
-                    girlHead.lookAt(camera.position);
+                // 【機能1】リアルな目線追従
+                // 女の子の頭が、常にあなたのゴーグルの方向を向く
+                if (girlHeadBone) {
+                    girlHeadBone.lookAt(headsetPos);
                 }
 
-                // 体を少しだけ呼吸しているようにゆらゆら動かす
-                girlModel.position.y = Math.sin(Date.now() * 0.0015) * 0.01;
+                // 【機能2】距離判定（近づくとドキドキ）
+                const dist = headsetPos.distanceTo(girlModel.position);
+                const subtitles = document.getElementById('subtitles');
+                
+                if (dist < 0.4) {
+                    subtitles.innerText = "女の子：『ちょっと、急に近すぎるよぉ……///』";
+                } else if (dist < 0.8) {
+                    subtitles.innerText = "女の子：『えへへ、近くにいてくれるの嬉しいな』";
+                }
+
+                // 【機能3】VRなでなで判定（Questのコントローラーが女の子の頭に触れたか）
+                // 女の子の頭の位置（大体高さ1.4m付近）を計算
+                const girlHeadPos = new THREE.Vector3(girlModel.position.x, 1.4, girlModel.position.z);
+                
+                // 左右のコントローラーの位置を取得
+                const c1Pos = new THREE.Vector3();
+                const c2Pos = new THREE.Vector3();
+                controller1.getWorldPosition(c1Pos);
+                controller2.getWorldPosition(c2Pos);
+
+                // コントローラーと頭の距離が15cm以内なら「なでなで」と判定
+                if (c1Pos.distanceTo(girlHeadPos) < 0.15 || c2Pos.distanceTo(girlHeadPos) < 0.15) {
+                    subtitles.innerText = "女の子：『んぅ…あたま、なでなでするの気持ちいい……♪』";
+                    
+                    // なでなで中、Questのコントローラーをほんのり微振動（ぶるぶる）させる
+                    if (xrSession) {
+                        for (const inputSource of xrSession.inputSources) {
+                            if (inputSource.gamepad && inputSource.gamepad.hapticActuators && inputSource.gamepad.hapticActuators[0]) {
+                                inputSource.gamepad.hapticActuators[0].pulse(0.1, 50); // 強さ10%、50ミリ秒
+                            }
+                        }
+                    }
+                }
+                
+                // 生きてる感を出すために、体全体をわずかに呼吸させて揺らす
+                girlModel.position.y = Math.sin(Date.now() * 0.002) * 0.005;
             }
 
             renderer.render(scene, camera);
-        }
-        animate();
+        });
 
-        // 画面サイズ変更のレスポンシブ対応
+        // 画面リサイズ対応
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
