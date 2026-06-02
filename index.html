@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Quest 3S 究極18禁VRルーム Special</title>
+    <title>Quest 3S 究極18禁VRルーム Special 改良版</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
@@ -17,7 +17,7 @@
             position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
             padding: 15px 30px; background: #ff69b4; color: white; font-size: 20px;
             font-weight: bold; border: none; border-radius: 10px; cursor: pointer; z-index: 999;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: block; /* 確実に表示させるよう修正 */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.4); display: block;
         }
         #loading {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -32,12 +32,15 @@
     <button id="vr-button">VRモードを起動する</button>
 
     <script>
-        // --- 1. 3D空間・カメラ・移動用グループの設定 ---
+        // --- 1. 3D空間・カメラ・プレイヤー位置の設定 ---
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0xfff0f5); 
 
         const camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+        
+        // プレイヤーのルートグループ（位置・回転の基準）
         const userGroup = new THREE.Group();
+        userGroup.position.set(0, 0, 0); // 初期位置
         userGroup.add(camera);
         scene.add(userGroup);
 
@@ -47,12 +50,11 @@
         renderer.xr.enabled = true; 
         document.body.appendChild(renderer.domElement);
 
-        // ボタンのクリックイベントをバインド（★追加修正部分）
         const vrButton = document.getElementById('vr-button');
         vrButton.addEventListener('click', onVRButtonClick);
 
         // 照明
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
         scene.add(ambientLight);
         const roomLight = new THREE.PointLight(0xffd700, 0.8, 10);
         roomLight.position.set(0, 2.5, 0);
@@ -66,16 +68,24 @@
         const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.25, 2.15), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 }));
         mattress.position.set(0, 0.425, 0);
         bedGroup.add(mattress);
-        bedGroup.position.set(0, 0, -1.5);
+        bedGroup.position.set(0, 0, -1.2);
         scene.add(bedGroup);
 
-        // --- 2. 壁掛け操作パネル ---
+        // --- 2. プレイヤーの股間に「ちんぽ」を配置 ---
+        const bodyChinGroup = new THREE.Group();
+        // カメラの真下（腰の位置）付近に配置されるよう、常にアップデートで追従させます
+        const bodyChinMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.03, 0.25, 16), new THREE.MeshStandardMaterial({ color: 0xff1493, roughness: 0.3 }));
+        bodyChinMesh.rotation.x = Math.PI / 2; // 前を向く
+        bodyChinGroup.add(bodyChinMesh);
+        scene.add(bodyChinGroup);
+
+        // --- 3. 壁掛け拡張操作パネル（ポーズ＋おもちゃ召喚） ---
         const panelGroup = new THREE.Group();
-        const board = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.3), new THREE.MeshStandardMaterial({ color: 0x111111 }));
+        const board = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 1.6), new THREE.MeshStandardMaterial({ color: 0x111111 }));
         panelGroup.add(board);
 
-        const poseLabels = ["通常立ち", "M字開脚", "四つん這い", "自動手コキ", "自動フェラ", "自動本番", "自動パイズリ"];
-        const poseIds = ["stand", "mleg", "quad", "autohand", "autofella", "autosex", "autopaizuri"];
+        const poseLabels = ["通常立ち", "M字開脚", "四つん這い", "自動手コキ", "自動フェラ", "自動本番", "自動パイズリ", "玩具:ローター", "玩具:オナホ"];
+        const poseIds = ["stand", "mleg", "quad", "autohand", "autofella", "autosex", "autopaizuri", "toy_rotor", "toy_onaho"];
         const buttonMeshes = [];
 
         function createTextCanvas(text) {
@@ -85,28 +95,28 @@
             context.fillStyle = '#ff69b4';
             context.fillRect(0, 0, 256, 128);
             context.fillStyle = '#ffffff';
-            context.font = 'bold 34px sans-serif';
+            context.font = 'bold 30px sans-serif';
             context.textAlign = 'center';
             context.textBaseline = 'middle';
             context.fillText(text, 128, 64);
             return new THREE.CanvasTexture(canvas);
         }
 
-        for(let i=0; i<7; i++) {
+        for(let i=0; i<9; i++) {
             const tex = createTextCanvas(poseLabels[i]);
             const btnMat = new THREE.MeshStandardMaterial({ map: tex, emissive: 0xffffff, emissiveIntensity: 0.1 });
-            const btnMesh = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.20, 0.03), btnMat);
-            const col = i % 2; const row = Math.floor(i / 2);
-            btnMesh.position.set(-0.35 + col * 0.7, 0.4 - row * 0.25, 0.02);
+            const btnMesh = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.22, 0.03), btnMat);
+            const col = i % 3; const row = Math.floor(i / 3);
+            btnMesh.position.set(-0.5 + col * 0.5, 0.45 - row * 0.3, 0.02);
             btnMesh.userData = { poseId: poseIds[i] };
             panelGroup.add(btnMesh);
             buttonMeshes.push(btnMesh);
         }
-        panelGroup.position.set(-2.2, 1.3, -1.5);
-        panelGroup.rotation.y = Math.PI / 3;
+        panelGroup.position.set(-1.8, 1.2, -1.2);
+        panelGroup.rotation.y = Math.PI / 4;
         scene.add(panelGroup);
 
-        // --- 3. 女の子のロードと関節設定 ---
+        // --- 4. 女の子のロードと関節設定 ---
         let girlModel = null;
         let b = {}; 
         let currentPose = "stand";
@@ -140,88 +150,118 @@
         const handQuotes = ["女の子：『私の手でシコシコ…おっきいおねだり棒がビクビク跳ねてるよぉ…♪』"];
         const paizuriQuotes = ["女の子：『お胸でギューッて挟んであげる…っ、私の乳首、ちんぽに擦れて気持ちいい…っ///』", "女の子：『はぁ、はぁっ…！お胸の谷間でシコシコするの、すっごくエロいよぉ…♪』"];
 
-        // --- 4. ポーズ変更＆主観ワープ処理 ---
+        // --- 5. ポーズ変更＆視点位置の適正化修正 ---
         function applyPose(poseName) {
+            if (poseName.startsWith("toy_")) {
+                // おもちゃ切り替え処理
+                currentToy = poseName;
+                updateToyVisibility();
+                return;
+            }
+
             currentPose = poseName;
             if (!girlModel) return;
 
-            girlModel.position.set(0, 0.55, -1.5);
+            // 女の子の初期位置リセット
+            girlModel.position.set(0, 0.55, -1.2);
             girlModel.rotation.set(0, Math.PI, 0);
-            userGroup.position.set(0, 0, 0); 
+            userGroup.position.set(0, 0, 0); // 視点位置をベッド前にリセット
             Object.values(b).forEach(bone => { if(bone) bone.rotation.set(0, 0, 0); });
 
             const subtitles = document.getElementById('subtitles');
 
             if (poseName === "stand") {
-                girlModel.position.set(0, 0, -0.5); 
+                girlModel.position.set(0, 0, -0.6); 
                 if (b.lArm) b.lArm.rotation.z = -Math.PI / 3;
                 if (b.rArm) b.rArm.rotation.z = Math.PI / 3;
                 subtitles.innerText = "女の子：『いつでもエッチしていいんだよ…？おねだりして？///』";
             } 
             else if (poseName === "mleg") {
-                girlModel.rotation.set(-Math.PI / 2, 0, 0);
+                girlModel.rotation.set(-Math.PI / 2.5, 0, 0);
                 if (b.lLeg) { b.lLeg.rotation.x = -Math.PI / 2.0; b.lLeg.rotation.z = Math.PI / 3.5; }
                 if (b.rLeg) { b.rLeg.rotation.x = -Math.PI / 2.0; b.rLeg.rotation.z = -Math.PI / 3.5; }
-                if (b.lKnee) b.lKnee.rotation.x = Math.PI / 1.5; if (b.rKnee) b.rKnee.rotation.x = Math.PI / 1.5;
                 subtitles.innerText = "女の子：『M字開脚…奥まで全部見えちゃうよぉ…ッ///』";
             } 
             else if (poseName === "quad") {
-                girlModel.position.y = 0.65;
-                if (b.spine) b.spine.rotation.x = Math.PI / 2.5; 
+                girlModel.position.y = 0.6;
+                if (b.spine) b.spine.rotation.x = Math.PI / 3; 
                 if (b.lLeg) b.lLeg.rotation.x = -Math.PI / 2; if (b.rLeg) b.rLeg.rotation.x = -Math.PI / 2;
-                if (b.lKnee) b.lKnee.rotation.x = Math.PI / 2; if (b.rKnee) b.rKnee.rotation.x = Math.PI / 2;
                 subtitles.innerText = "女の子：『お尻突き出すの、すっごく恥ずかしい…///』";
             }
             else if (poseName === "autohand") {
-                girlModel.position.set(0, 0.45, -0.6);
-                userGroup.position.set(0, 0, -0.2);
+                girlModel.position.set(0, 0.45, -0.5);
+                userGroup.position.set(0, 0.1, 0.1); // 視点が近くなるよう前へ
                 subtitles.innerText = "女の子：『手コキでいっぱい気持ちよくしてあげるね…♪』";
             }
             else if (poseName === "autofella") {
-                girlModel.position.set(0, 0.25, -0.4);
+                girlModel.position.set(0, 0.15, -0.45);
                 if (b.spine) b.spine.rotation.x = Math.PI / 6;
-                userGroup.position.set(0, 0.2, 0.1);
+                userGroup.position.set(0, 0.15, 0.15); // フェラ顔が眼前に迫る位置
                 subtitles.innerText = "女の子：『んちゅ…お口でじゅぶじゅぶ、いっぱいしゃぶってあげる…んむぅ』";
             }
             else if (poseName === "autosex") {
-                girlModel.position.set(0, 0.55, -0.4);
+                girlModel.position.set(0, 0.45, -0.4);
                 girlModel.rotation.set(-Math.PI / 2, 0, 0); 
                 if (b.lLeg) { b.lLeg.rotation.x = -Math.PI / 1.8; b.lLeg.rotation.z = Math.PI / 3; }
                 if (b.rLeg) { b.rLeg.rotation.x = -Math.PI / 1.8; b.rLeg.rotation.z = -Math.PI / 3; }
-                if (b.lKnee) b.lKnee.rotation.x = Math.PI / 1.4; if (b.rKnee) b.rKnee.rotation.x = Math.PI / 1.4;
-                userGroup.position.set(0, 0.3, 0.2);
+                userGroup.position.set(0, 0.2, 0.25); // 結合部が見下ろせる極上主観位置
                 subtitles.innerText = "女の子：『あぁっ！ちんぽ入ってきたぁ！自動でナカいっぱいかき回してぇぇ！！』";
             }
             else if (poseName === "autopaizuri") {
-                girlModel.position.set(0, 0.38, -0.45);
+                girlModel.position.set(0, 0.35, -0.45);
                 if (b.lArm) { b.lArm.rotation.x = -Math.PI / 4; b.lArm.rotation.y = Math.PI / 6; b.lArm.rotation.z = Math.PI / 12; }
                 if (b.rArm) { b.rArm.rotation.x = -Math.PI / 4; b.rArm.rotation.y = -Math.PI / 6; b.rArm.rotation.z = -Math.PI / 12; }
-                userGroup.position.set(0, 0.22, 0.05);
+                userGroup.position.set(0, 0.18, 0.1); // 胸の谷間にカメラが埋まる主観位置
                 subtitles.innerText = "女の子：『私の大きなお胸で挟んであげる…んっ、パイズリで気持ちよくなってね？///』";
             }
         }
 
-        // --- 5. コントローラーと手・ちんの設定 ---
-        const controller1 = renderer.xr.getController(0); userGroup.add(controller1); 
-        const controller2 = renderer.xr.getController(1); userGroup.add(controller2); 
+        // --- 6. コントローラーと右手復活＆玩具システム ---
+        const controller1 = renderer.xr.getController(0); userGroup.add(controller1); // 左手
+        const controller2 = renderer.xr.getController(1); userGroup.add(controller2); // 右手（復活）
 
-        const leftHandMesh = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff69b4 }));
+        // 左手グラフィック（ピンクの球体）
+        const leftHandMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff69b4 }));
         controller1.add(leftHandMesh);
 
-        const chinGroup = new THREE.Group();
-        const chinMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.25, 16), new THREE.MeshStandardMaterial({ color: 0xff1493, roughness: 0.3 }));
-        chinMesh.rotation.x = Math.PI / 2; chinMesh.position.z = -0.125; 
-        chinGroup.add(chinMesh);
-        controller2.add(chinGroup);
+        // 右手グラフィックおよび拡張おもちゃグループ
+        const rightHandMesh = new THREE.Mesh(new THREE.SphereGeometry(0.04, 16, 16), new THREE.MeshStandardMaterial({ color: 0x00bfff }));
+        controller2.add(rightHandMesh);
 
-        // --- 6. シチュエーション特化型ミルク発射システム ---
+        let currentToy = "none";
+        const toyGroup = new THREE.Group();
+        
+        // ローター（小さな楕円形マゼンタ）
+        const rotorMesh = new THREE.Mesh(new THREE.SphereGeometry(0.025, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff00ff, roughness: 0.2 }));
+        rotorMesh.scale.set(1, 1, 1.8); rotorMesh.position.set(0, 0, -0.05);
+        rotorMesh.name = "rotor";
+        toyGroup.add(rotorMesh);
+
+        // オナホール（大きめのピンク筒状）
+        const onahoMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 0.15, 16), new THREE.MeshStandardMaterial({ color: 0xffc0cb, roughness: 0.4 }));
+        onahoMesh.rotation.x = Math.PI / 2; onahoMesh.position.set(0, 0, -0.08);
+        onahoMesh.name = "onaho";
+        toyGroup.add(onahoMesh);
+
+        controller2.add(toyGroup);
+
+        function updateToyVisibility() {
+            toyGroup.children.forEach(child => {
+                if (currentToy === "toy_rotor" && child.name === "rotor") child.visible = true;
+                else if (currentToy === "toy_onaho" && child.name === "onaho") child.visible = true;
+                else child.visible = false;
+            });
+        }
+        updateToyVisibility();
+
+        // --- 7. シチュエーション特化型ミルク発射システム ---
         const milkParticles = [];
         function shootSituationMilk() {
-            const tipPos = new THREE.Vector3(0, 0, -0.25).applyMatrix4(controller2.matrixWorld);
+            // ミルクは股間の「ちんぽ」の先端（前方にオフセットした位置）から発射されるよう変更！
+            const tipPos = new THREE.Vector3(0, 0, -0.2).applyMatrix4(bodyChinGroup.matrixWorld);
             const subtitles = document.getElementById('subtitles');
 
-            let count = 25; 
-            let speedBase = 0.09;
+            let count = 25; let speedBase = 0.09;
 
             if (currentPose === "autosex") {
                 count = 35; speedBase = 0.02; 
@@ -241,16 +281,17 @@
                 const pMesh = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
                 pMesh.position.copy(tipPos);
                 
-                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(controller2.quaternion);
-                dir.x += (Math.random() - 0.5) * 0.35;
-                dir.y += (Math.random() - 0.5) * 0.35 + (currentPose === "autosex" ? -0.1 : 0.15); 
-                dir.z += (Math.random() - 0.5) * 0.35;
+                // 発射方向はプレイヤーの向いている正面方向
+                const dir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+                dir.x += (Math.random() - 0.5) * 0.3;
+                dir.y += (Math.random() - 0.5) * 0.3 + (currentPose === "autosex" ? -0.1 : 0.1); 
+                dir.z += (Math.random() - 0.5) * 0.3;
                 dir.normalize();
 
                 pMesh.userData = {
-                    velocity: dir.multiplyScalar(speedBase + Math.random() * 0.05),
-                    gravity: currentPose === "autosex" ? 0.001 : 0.003,
-                    life: currentPose === "autosex" ? 90 : 60 
+                    velocity: dir.multiplyScalar(speedBase + Math.random() * 0.04),
+                    gravity: currentPose === "autosex" ? 0.001 : 0.0025,
+                    life: currentPose === "autosex" ? 100 : 60 
                 };
                 scene.add(pMesh);
                 milkParticles.push(pMesh);
@@ -270,7 +311,7 @@
             }
         }
 
-        // パネル接触
+        // パネル接触判定（トリガーを引かなくても触れるだけで検知）
         function checkPanelTouch() {
             const c1Pos = new THREE.Vector3(); controller1.getWorldPosition(c1Pos);
             buttonMeshes.forEach(btn => {
@@ -285,51 +326,86 @@
             });
         }
 
-        // 接触・マクロ・バイブ
+        // --- 8. 強化版：確定接触・セリフ・バイブ連動システム ---
         let speechTimeout = 0; let macroTimer = 0;
 
         function checkEroCollision(session) {
             if (!girlModel) return;
 
             const leftHandPos = new THREE.Vector3(); controller1.getWorldPosition(leftHandPos);
-            const headPos = new THREE.Vector3(); if(b.head) b.head.getWorldPosition(headPos); else headPos.set(girlModel.position.x, girlModel.position.y + 1.35, girlModel.position.z);
-            const chestPos = new THREE.Vector3(); if(b.spine) b.spine.getWorldPosition(chestPos); else chestPos.set(girlModel.position.x, girlModel.position.y + 0.95, girlModel.position.z);
-            const msnPos = new THREE.Vector3(); if(b.hips) b.hips.getWorldPosition(msnPos); else msnPos.set(girlModel.position.x, girlModel.position.y + 0.5, girlModel.position.z);
+            const rightHandPos = new THREE.Vector3(); controller2.getWorldPosition(rightHandPos);
+            const chinPos = new THREE.Vector3(); bodyChinGroup.getWorldPosition(chinPos);
+
+            // 女の子側の当たり判定用ターゲット座標（リアルタイム取得）
+            const headPos = new THREE.Vector3(); if(b.head) b.head.getWorldPosition(headPos); else headPos.set(girlModel.position.x, girlModel.position.y + 0.7, girlModel.position.z);
+            const chestPos = new THREE.Vector3(); if(b.spine) b.spine.getWorldPosition(chestPos); else chestPos.set(girlModel.position.x, girlModel.position.y + 0.4, girlModel.position.z);
+            const vaginaPos = new THREE.Vector3(); if(b.hips) b.hips.getWorldPosition(vaginaPos); else vaginaPos.set(girlModel.position.x, girlModel.position.y, girlModel.position.z);
 
             const subtitles = document.getElementById('subtitles');
             const now = Date.now();
 
-            if (leftHandPos.distanceTo(headPos) < 0.22) {
-                subtitles.innerText = "女の子：『あたま、なでなでするのすっごく嬉しいな…もっと優しくしてぇ…♪』";
-                pulseController(session, 'left', 0.1, 30);
-            }
-            else if (leftHandPos.distanceTo(chestPos) < 0.22 && !currentPose.startsWith("auto")) {
-                subtitles.innerText = "女の子：『んぁっ…！むね、揉むのきもちいい……おっきくなっちゃうぅ…///』";
-                pulseController(session, 'left', 0.2, 40);
+            // 触った瞬間に即時反応させるため、クールダウンを短縮(1秒)
+            if (now > speechTimeout) {
+                // 【左手での接触判定】
+                if (leftHandPos.distanceTo(headPos) < 0.18) {
+                    subtitles.innerText = "女の子：『お顔なでなでするの、すっごく気持ちいい…もっと優しくしてぇ…♪』";
+                    pulseController(session, 'left', 0.2, 50); speechTimeout = now + 1200; return;
+                }
+                if (leftHandPos.distanceTo(chestPos) < 0.2) {
+                    subtitles.innerText = "女の子：『んぁっ…！お胸揉まれてるぅ、そこ乳首敏感になっちゃうっ///』";
+                    pulseController(session, 'left', 0.3, 60); speechTimeout = now + 1200; return;
+                }
+                if (leftHandPos.distanceTo(vaginaPos) < 0.2) {
+                    subtitles.innerText = "女の子：『ひゃんっ！そこ、おまんこ直接触られたら、エッチな汁が出ちゃうぅ…！』";
+                    pulseController(session, 'left', 0.5, 80); speechTimeout = now + 1200; return;
+                }
+
+                // 【右手（または持っている玩具）での接触判定】
+                let rightDistToHead = rightHandPos.distanceTo(headPos);
+                let rightDistToChest = rightHandPos.distanceTo(chestPos);
+                let rightDistToVagina = rightHandPos.distanceTo(vaginaPos);
+
+                if (rightDistToHead < 0.2) {
+                    if (currentToy === "toy_rotor") { subtitles.innerText = "女の子：『んひぃっ！お顔にローター当てないでぇ！頭がジワジワしちゃうぅっ！』"; }
+                    else { subtitles.innerText = "女の子：『右手で頬をなでられるの、愛されてる感じがしてすっごくエロいよ…///』"; }
+                    pulseController(session, 'right', 0.4, 60); speechTimeout = now + 1200; return;
+                }
+                if (rightDistToChest < 0.2) {
+                    if (currentToy === "toy_rotor") { subtitles.innerText = "女の子：『あんっ！おっぱいにローターはヤバいっ！乳首がブクブク震えていっちゃうぅぅ！！』"; }
+                    else { subtitles.innerText = "女の子：『大きな手でお胸をギューって鷲掴みにされてるぅ…んほぉ…っ』"; }
+                    pulseController(session, 'right', 0.5, 80); speechTimeout = now + 1200; return;
+                }
+                if (rightDistToVagina < 0.2) {
+                    if (currentToy === "toy_rotor") { subtitles.innerText = "女の子：『んほぉぉーーッ！！クリトリスにクリティカルでローター当たってるぅぅ！！ビリビリして狂うぅぅ！！』"; }
+                    else if (currentToy === "toy_onaho") { subtitles.innerText = "女の子：『オナホールでおちんぽシコシコしてるの？私のナカでもそれ以上にしてぇ…っ！』"; }
+                    else { subtitles.innerText = "女の子：『おまんこの奥まで指が入ってきて、クチュクチュ音が鳴ってるよぉ…っ///』"; }
+                    pulseController(session, 'right', 0.8, 100); speechTimeout = now + 1200; return;
+                }
             }
 
+            // --- 各種自動高速ピストンマクロ運動 ---
             macroTimer += 0.14; 
             if (currentPose === "autohand") {
                 if(b.rArm) b.rArm.rotation.x = Math.sin(macroTimer) * 0.4;
-                pulseController(session, 'right', 0.35, 30);
-                if (now > speechTimeout) { speechTimeout = now + 3000; subtitles.innerText = handQuotes[Math.floor(Math.random() * handQuotes.length)]; }
+                pulseController(session, 'right', 0.35, 20);
+                if (now > speechTimeout) { speechTimeout = now + 2500; subtitles.innerText = handQuotes[Math.floor(Math.random() * handQuotes.length)]; }
             }
             else if (currentPose === "autofella") {
                 if(b.head) b.head.rotation.x = (Math.sin(macroTimer) * 0.2) + 0.1;
-                pulseController(session, 'right', 0.45, 40);
-                if (now > speechTimeout) { speechTimeout = now + 3000; subtitles.innerText = fellaQuotes[Math.floor(Math.random() * fellaQuotes.length)]; }
+                pulseController(session, 'right', 0.45, 25);
+                if (now > speechTimeout) { speechTimeout = now + 2500; subtitles.innerText = fellaQuotes[Math.floor(Math.random() * fellaQuotes.length)]; }
             }
             else if (currentPose === "autosex") {
                 const speedOffset = Math.sin(macroTimer * 1.6) * 0.08;
                 girlModel.position.z = -0.4 + speedOffset; 
-                pulseController(session, 'right', 0.95, 80); 
-                if (now > speechTimeout) { speechTimeout = now + 2500; subtitles.innerText = sexQuotes[Math.floor(Math.random() * sexQuotes.length)]; }
+                pulseController(session, 'right', 0.9, 40); 
+                if (now > speechTimeout) { speechTimeout = now + 2000; subtitles.innerText = sexQuotes[Math.floor(Math.random() * sexQuotes.length)]; }
             }
             else if (currentPose === "autopaizuri") {
                 const breastOffset = Math.sin(macroTimer * 1.3) * 0.05;
                 girlModel.position.z = -0.45 + breastOffset; 
-                pulseController(session, 'right', 0.5, 45); 
-                if (now > speechTimeout) { speechTimeout = now + 3000; subtitles.innerText = paizuriQuotes[Math.floor(Math.random() * paizuriQuotes.length)]; }
+                pulseController(session, 'right', 0.5, 30); 
+                if (now > speechTimeout) { speechTimeout = now + 2500; subtitles.innerText = paizuriQuotes[Math.floor(Math.random() * paizuriQuotes.length)]; }
             }
         }
 
@@ -341,9 +417,9 @@
             }
         }
 
-        let rightTriggerReset = true; let rightStickReset = true;
+        let rightTriggerReset = true;
 
-        // --- 7. VRモード起動処理（修正完了） ---
+        // --- 9. VRモード起動 ---
         let xrSession = null;
         function onVRButtonClick() {
             if (xrSession === null) {
@@ -355,8 +431,14 @@
             } else { xrSession.end(); xrSession = null; }
         }
 
-        // --- 8. メインループ ---
+        // --- 10. メインループ＆左スティック操作性改善 ---
         renderer.setAnimationLoop(function () {
+            // プレイヤーの股間にちんぽの座標を常に固定（カメラの真下、やや前方）
+            bodyChinGroup.position.copy(userGroup.position);
+            bodyChinGroup.position.y = userGroup.position.y + 0.45; // 股間の高さに固定
+            bodyChinGroup.position.z += Math.sin(userGroup.rotation.y) * 0.1;
+            bodyChinGroup.rotation.y = userGroup.rotation.y;
+
             if (xrSession) {
                 checkPanelTouch();
                 checkEroCollision(xrSession);
@@ -366,28 +448,32 @@
                     if (source.gamepad && source.gamepad.axes) {
                         const axes = source.gamepad.axes; const buttons = source.gamepad.buttons;
                         
-                        if (source.handedness === 'left' && axes.length >= 4 && !currentPose.startsWith("auto")) {
-                            const speed = 0.03;
+                        // 【操作性改善】左スティック移動（カメラの向き基準で滑らかに移動できるように完全最適化）
+                        if (source.handedness === 'left' && axes.length >= 4) {
+                            const speed = 0.04; // 移動速度
+                            const moveX = axes[2]; // スティック左右
+                            const moveY = axes[3]; // スティック前後
+                            
                             const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
                             const side = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
                             forward.y = 0; side.y = 0; forward.normalize(); side.normalize();
-                            userGroup.position.addScaledVector(forward, -axes[3] * speed);
-                            userGroup.position.addScaledVector(side, axes[2] * speed);
+                            
+                            userGroup.position.addScaledVector(forward, -moveY * speed);
+                            userGroup.position.addScaledVector(side, moveX * speed);
                         }
 
+                        // 右スティック（カメラ視線の回転制御）
                         if (source.handedness === 'right' && axes.length >= 4) {
-                            if (Math.abs(axes[2]) > 0.6) {
-                                if (rightStickReset) {
-                                    rightStickReset = false;
-                                    userGroup.rotation.y += (axes[2] > 0 ? -Math.PI / 6 : Math.PI / 6);
-                                }
-                            } else { rightStickReset = true; }
+                            if (Math.abs(axes[2]) > 0.5) {
+                                userGroup.rotation.y -= axes[2] * 0.04; // スナップから、滑らかなスムーズターンに変更して操作性UP
+                            }
 
+                            // 右トリガー（人差し指）を押し込むと、股間のちんぽから特製ミルクが全モード対応で発射！
                             if (buttons[0] && buttons[0].pressed) {
                                 if (rightTriggerReset) {
                                     rightTriggerReset = false;
                                     shootSituationMilk();
-                                    pulseController(xrSession, 'right', 1.0, 250); 
+                                    pulseController(xrSession, 'right', 1.0, 300); 
                                 }
                             } else { rightTriggerReset = true; }
                         }
