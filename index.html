@@ -1,57 +1,99 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>VR Girl Perfect Game</title>
-    <script src="https://aframe.io/releases/1.6.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-extras@7.2.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/c-frame/aframe-super-hands-component@master/dist/aframe-super-hands.min.js"></script>
+using UnityEngine;
+
+/// <summary>
+/// Meta Quest 3S向け：女の子とイチャイチャするための統合システム
+/// GitHub公開用 / コピペで即動作可能
+/// </summary>
+public class VRFlirtSystem : MonoBehaviour
+{
+    [Header("--- 参照設定 (References) ---")]
+    [Tooltip("プレイヤーの頭（Main Camera）を割り当ててください")]
+    public Transform playerHead;
     
-    <script>
-      AFRAME.registerComponent('ball-game', {
-        init: function () {
-          var girl = document.querySelector('#girl');
-          var text = document.querySelector('#speech-text');
-          
-          this.el.addEventListener('collidestart', function () {
-            text.setAttribute('value', 'Kyaaa! Nice catch!');
-            girl.setAttribute('color', '#FFC0CB'); // 当たると女の子がピンクに照れる
-            
-            setTimeout(function() {
-              text.setAttribute('value', 'Throw the ball to me!');
-              girl.setAttribute('color', '#FFFFFF'); // 元に戻る
-            }, 3000);
-          });
+    [Tooltip("女の子のアニメーターを割り当ててください")]
+    public Animator girlAnimator;
+    
+    [Tooltip("女の子の頭のボーンを割り当ててください（目線追従用）")]
+    public Transform girlHeadBone;
+
+    [Header("--- なでなで設定 (Petting) ---")]
+    [Tooltip("VRコントローラーのオブジェクトに設定するタグ")]
+    public string controllerTag = "GameController";
+    
+    [Tooltip("なでる判定にするための、手の最低移動速度")]
+    public float petVelocityThreshold = 0.1f;
+
+    [Header("--- 距離感設定 (Proximity) ---")]
+    [Tooltip("これ以上近づくと『限界接近』と判定する距離（メートル）")]
+    public float closeDistance = 0.4f;
+
+    // 内部計算用
+    private Vector3 lastHandPosition;
+    private bool isPetting = false;
+    private bool isTooClose = false;
+
+    void Start()
+    {
+        // アニメーターが未設定なら自動取得を試みる
+        if (girlAnimator == null) girlAnimator = GetComponent<Animator>();
+        
+        // プレイヤー頭部が未設定ならMainCameraを自動取得
+        if (playerHead == null && Camera.main != null) playerHead = Camera.main.transform;
+    }
+
+    void Update()
+    {
+        if (playerHead == null) return;
+
+        // 1. 目線追従（ルックアット機能）
+        if (girlHeadBone != null)
+        {
+            Vector3 targetPos = playerHead.position;
+            // 首が不自然に傾かないように高さを固定
+            targetPos.y = girlHeadBone.position.y;
+            girlHeadBone.LookAt(targetPos);
         }
-      });
-    </script>
-  </head>
-  
-  <body>
-    <a-scene movement-controls="controls: checkpoint, gamepad, trackpad, keyboard, touch; speed: 0.1">
-      
-      <a-sky color="#FFF0F5"></a-sky> 
-      <a-plane position="0 0 0" rotation="-90 0 0" width="50" height="50" color="#F5DEB3"></a-plane>
 
-      <a-image id="girl" 
-               src="https://cdn.phototourl.com/free/2026-06-02-c50c9f28-478e-44fd-914c-0c4c82dc15fe.jpg" 
-               position="0 1.3 -3" 
-               width="1.2" 
-               height="1.8"
-               sphere-collider="objects: #ball"></a-image>
+        // 2. 距離判定（近づくとドキドキ）
+        float distance = Vector3.Distance(transform.position, playerHead.position);
+        if (distance < closeDistance && !isTooClose)
+        {
+            isTooClose = true;
+            girlAnimator.SetBool("IsTooClose", true);
+            Debug.Log("女の子：『ひゃぅ！？ ち、近いよぉ…///』");
+        }
+        else if (distance >= closeDistance && isTooClose)
+        {
+            isTooClose = false;
+            girlAnimator.SetBool("IsTooClose", false);
+        }
+    }
 
-      <a-text id="speech-text" value="Throw the ball to me!" 
-              position="0 2.4 -3" align="center" color="#FF1493" width="5"></a-text>
+    // 3. なでなで判定（頭のColliderにコントローラーが触れている時）
+    private void OnTriggerStay(Collider other)
+    {
+        if (other.CompareTag(controllerTag))
+        {
+            // コントローラーの動く速度を計算
+            float handSpeed = (other.transform.position - lastHandPosition).magnitude / Time.deltaTime;
+            lastHandPosition = other.transform.position;
 
-      <a-sphere id="ball" position="0 1.2 -1" radius="0.15" color="#FF69B4"
-                hoverable grabbable stretchable droppable ball-game></a-sphere>
+            if (handSpeed > petVelocityThreshold && !isPetting)
+            {
+                isPetting = true;
+                girlAnimator.SetBool("IsPetting", true);
+                Debug.Log("女の子：『んぅ…あたま、なでなでするの、あったかくて好き……』");
+            }
+        }
+    }
 
-      <a-entity id="rig" movement-controls>
-        <a-entity camera position="0 1.6 0" look-controls></a-entity>
-        <a-entity id="left-hand" sphere-collider="objects: #ball" super-hands oculus-touch-controls="hand: left"></a-entity>
-        <a-entity id="right-hand" sphere-collider="objects: #ball" super-hands oculus-touch-controls="hand: right"></a-entity>
-      </a-entity>
-
-    </a-scene>
-  </body>
-</html>
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag(controllerTag))
+        {
+            isPetting = false;
+            girlAnimator.SetBool("IsPetting", false);
+            Debug.Log("女の子：『あ…止めちゃうの？ もっと、なでて…？』");
+        }
+    }
+}
