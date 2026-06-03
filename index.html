@@ -2,14 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>3D Surveillance System</title>
+    <title>VR Surveillance System</title>
     <style>
-        body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-        #overlay { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.85); padding: 20px; border: 1px solid #0f0; width: 320px; }
-        canvas { display: block; }
-        #msg { color: #ff00ff; font-weight: bold; margin-top: 15px; min-height: 1.2em; font-size: 1.1em; }
-        input { background: #111; color: #0f0; border: 1px solid #0f0; padding: 5px; width: 100%; box-sizing: border-box; }
-        button { background: #0f0; color: #000; border: none; padding: 5px 10px; margin-top: 10px; cursor: pointer; width: 100%; font-weight: bold; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        #ui { position: absolute; top: 10%; left: 10%; color: #0f0; z-index: 100; pointer-events: none; }
     </style>
     <script type="importmap">
         {
@@ -22,83 +18,69 @@
     </script>
 </head>
 <body>
-
-<div id="overlay">
-    <h2>Access Terminal</h2>
-    <p style="font-size: 0.8em;">Target: Noa Kato</p>
-    <input type="password" id="pw" placeholder="PASSWORD">
-    <button onclick="check()">CONNECT</button>
-    <div id="msg">SYSTEM LOCKED</div>
-</div>
+    <div id="ui">
+        <h1>ACCESS TERMINAL</h1>
+        <p>Click (Trigger) to initiate connection.</p>
+    </div>
 
 <script type="module">
     import * as THREE from 'three';
     import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { VRButton } from 'three/addons/webxr/VRButton.js';
     import { VRM, VRMUtils } from '@pixiv/three-vrm';
 
+    // シーン設定
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(30, window.innerWidth/window.innerHeight, 0.1, 20);
-    camera.position.set(0, 1.0, 2.2);
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 50);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
+    document.body.appendChild(VRButton.createButton(renderer));
 
+    // 照明
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
     const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(1, 1, 1);
+    light.position.set(1, 2, 1);
     scene.add(light);
-    scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 
+    // 部屋と机（VR環境用）
+    const desk = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.6), new THREE.MeshBasicMaterial({color: 0x332211}));
+    desk.position.set(0, 0.35, -0.8);
+    scene.add(desk);
+
+    // モデル読み込み
     const loader = new GLTFLoader();
     let currentVrm = null;
-    let isHackingSuccess = false;
+    let active = false;
 
-    // リポジトリ内のファイル名と一致させてください
     loader.load('2404886420955899236.vrm.glb', (gltf) => {
         VRMUtils.removeUnnecessaryJoints(gltf.scene);
         VRM.from(gltf).then((vrm) => {
-            scene.add(vrm.scene);
             currentVrm = vrm;
-            // 座りポーズの初期設定
-            const hips = vrm.humanoid.getBoneNode('hips');
-            if(hips) hips.position.y = -0.35;
+            vrm.scene.position.set(0, 0.7, -1.2); // 机の向こう側
+            scene.add(vrm.scene);
         });
     });
 
-    const lines = [
-        "誰にも見られてないから…安心ね。",
-        "…んっ、ダメ…こんなとこ見ないで…",
-        "気持ちいい…ずっとこうしていたい…",
-        "ふふ、今日は誰にも邪魔されないわ。"
-    ];
+    // 起動トリガー
+    window.addEventListener('mousedown', () => { active = true; document.getElementById('ui').style.display = 'none'; });
 
     function animate() {
         requestAnimationFrame(animate);
         const time = Date.now() * 0.001;
 
-        if (isHackingSuccess && currentVrm) {
+        if (active && currentVrm) {
             const hips = currentVrm.humanoid.getBoneNode('hips');
             if (hips) {
-                // hな動作の周期演出
+                // 腰の動き
                 hips.rotation.x = Math.sin(time * 3) * 0.15;
-            }
-            // ランダムセリフ
-            if (Math.floor(time) % 8 === 0 && Math.random() < 0.05) {
-                document.getElementById('msg').innerText = "NOA: " + lines[Math.floor(Math.random() * lines.length)];
             }
             currentVrm.update(0.016);
         }
         renderer.render(scene, camera);
     }
     animate();
-
-    window.check = () => {
-        if(document.getElementById('pw').value === "noa0721") {
-            isHackingSuccess = true;
-            document.getElementById('msg').innerText = "NOA: あら、誰か見てるの…？";
-        } else {
-            alert("ACCESS DENIED");
-        }
-    };
 </script>
 </body>
 </html>
