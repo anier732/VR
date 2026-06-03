@@ -5,15 +5,18 @@
     <title>3D Surveillance System</title>
     <style>
         body { margin: 0; background: #000; color: #0f0; font-family: monospace; overflow: hidden; }
-        #overlay { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.7); padding: 20px; border: 1px solid #0f0; width: 300px; }
+        #overlay { position: absolute; top: 20px; left: 20px; z-index: 10; background: rgba(0,0,0,0.85); padding: 20px; border: 1px solid #0f0; width: 320px; }
         canvas { display: block; }
-        #msg { color: #f0f; font-weight: bold; margin-top: 10px; }
+        #msg { color: #ff00ff; font-weight: bold; margin-top: 15px; min-height: 1.2em; font-size: 1.1em; }
+        input { background: #111; color: #0f0; border: 1px solid #0f0; padding: 5px; width: 100%; box-sizing: border-box; }
+        button { background: #0f0; color: #000; border: none; padding: 5px 10px; margin-top: 10px; cursor: pointer; width: 100%; font-weight: bold; }
     </style>
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js"
+                "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
             }
         }
     </script>
@@ -22,19 +25,20 @@
 
 <div id="overlay">
     <h2>Access Terminal</h2>
+    <p style="font-size: 0.8em;">Target: Noa Kato</p>
     <input type="password" id="pw" placeholder="PASSWORD">
-    <button onclick="check()">LOGIN</button>
-    <p id="msg"></p>
+    <button onclick="check()">CONNECT</button>
+    <div id="msg">SYSTEM LOCKED</div>
 </div>
 
 <script type="module">
     import * as THREE from 'three';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
     import { VRM, VRMUtils } from '@pixiv/three-vrm';
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(30, window.innerWidth/window.innerHeight, 0.1, 20);
-    camera.position.set(0, 1.2, 2.5); // 少し近づける
+    camera.position.set(0, 1.0, 2.2);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     document.body.appendChild(renderer.domElement);
@@ -48,27 +52,37 @@
     let currentVrm = null;
     let isHackingSuccess = false;
 
+    // リポジトリ内のファイル名と一致させてください
     loader.load('2404886420955899236.vrm.glb', (gltf) => {
         VRMUtils.removeUnnecessaryJoints(gltf.scene);
         VRM.from(gltf).then((vrm) => {
             scene.add(vrm.scene);
             currentVrm = vrm;
+            // 座りポーズの初期設定
+            const hips = vrm.humanoid.getBoneNode('hips');
+            if(hips) hips.position.y = -0.35;
         });
     });
 
-    const lines = ["誰にも見られてないから…安心ね。", "あ…ん、こんなことしたらダメなのに…", "気持ちいい…ずっとこうしていたい…", "んっ…！誰か見てるかも…"];
+    const lines = [
+        "誰にも見られてないから…安心ね。",
+        "…んっ、ダメ…こんなとこ見ないで…",
+        "気持ちいい…ずっとこうしていたい…",
+        "ふふ、今日は誰にも邪魔されないわ。"
+    ];
 
     function animate() {
         requestAnimationFrame(animate);
         const time = Date.now() * 0.001;
 
         if (isHackingSuccess && currentVrm) {
-            // 腰を動かす（hな動作の再現）
             const hips = currentVrm.humanoid.getBoneNode('hips');
-            if (hips) hips.rotation.x = Math.sin(time * 3) * 0.2;
-
-            // 定期的なセリフ表示
-            if (Math.floor(time) % 8 === 0 && Math.random() < 0.02) {
+            if (hips) {
+                // hな動作の周期演出
+                hips.rotation.x = Math.sin(time * 3) * 0.15;
+            }
+            // ランダムセリフ
+            if (Math.floor(time) % 8 === 0 && Math.random() < 0.05) {
                 document.getElementById('msg').innerText = "NOA: " + lines[Math.floor(Math.random() * lines.length)];
             }
             currentVrm.update(0.016);
@@ -78,14 +92,13 @@
     animate();
 
     window.check = () => {
-        const p = document.getElementById('pw').value;
-        if(p === "noa0721") {
+        if(document.getElementById('pw').value === "noa0721") {
             isHackingSuccess = true;
-            document.getElementById('msg').innerText = "System Hacked. Live Feed Active.";
+            document.getElementById('msg').innerText = "NOA: あら、誰か見てるの…？";
         } else {
-            alert("Access Denied");
+            alert("ACCESS DENIED");
         }
-    }
+    };
 </script>
 </body>
 </html>
