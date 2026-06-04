@@ -8,83 +8,92 @@
         #dialogue { 
             position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
             color: #ff00ff; font-size: 32px; background: rgba(0,0,0,0.8);
-            padding: 30px; border: 2px solid #ff00ff; display: none; pointer-events: none;
+            padding: 30px; border: 2px solid #ff00ff; display: none; 
+            pointer-events: none; text-align: center; border-radius: 15px;
         }
     </style>
 </head>
 <body>
     <div id="dialogue"></div>
+
 <script type="module">
     import * as THREE from 'three';
-    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-    import { VRButton } from 'three/addons/webxr/VRButton.js';
-    import { VRM } from '@pixiv/three-vrm';
+    import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+    import { VRButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/VRButton.js';
+    import { VRM, VRMUtils } from 'https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js';
 
+    // シーン設定
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 50);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.5)); // 明るさを確保
+    const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
 
     const dialogueEl = document.getElementById('dialogue');
     
-    // シチュエーションとセリフのデータ
-    const data = {
+    // データ
+    const modes = ["SOLO", "TOY", "COUPLE"];
+    const lines = {
         SOLO: ["…あ、見ないで…", "一人だと、変な感じ…", "んっ…！"],
         TOY: ["…これ、中まで…っ！", "あぁ…っ、壊れそう…", "気持ちいい…っ！"],
         COUPLE: ["…好き…もっと激しくして…", "あぁっ！いっちゃう！", "全部…中で出して…"]
     };
 
-    let mode = "SOLO";
-    let intensity = 0; // 時間経過で上がるゲージ
+    let modeIdx = 0;
+    let intensity = 0;
     let isClimax = false;
 
+    // モデル読み込み
     const loader = new GLTFLoader();
     let currentVrm = null;
-
     loader.load('2404886420955899236.vrm.glb', (gltf) => {
+        VRMUtils.removeUnnecessaryJoints(gltf.scene);
         VRM.from(gltf).then((vrm) => {
             currentVrm = vrm;
-            vrm.scene.position.set(0, 0.7, -1.2);
+            vrm.scene.position.set(0, 0.7, -1.5);
             scene.add(vrm.scene);
         });
     });
 
-    // モード切替：クリックでモード変更
+    // クリック（トリガー）処理
     window.addEventListener('mousedown', () => {
-        const modes = ["SOLO", "TOY", "COUPLE"];
-        mode = modes[(modes.indexOf(mode) + 1) % 3];
-        intensity = 0; // リセット
-        isClimax = false;
+        if(isClimax) { modeIdx = 0; intensity = 0; isClimax = false; return; }
+        modeIdx = (modeIdx + 1) % 3;
+        intensity = 0;
+        
+        // セリフ表示
+        const currentMode = modes[modeIdx];
+        const msg = lines[currentMode][Math.floor(Math.random() * lines[currentMode].length)];
+        dialogueEl.style.display = 'block';
+        dialogueEl.innerText = msg;
+        setTimeout(() => { dialogueEl.style.display = 'none'; }, 2000);
     });
 
-    function animate() {
-        requestAnimationFrame(animate);
-        const time = Date.now() * 0.001;
-
+    // アニメーションループ
+    renderer.setAnimationLoop((time) => {
         if (currentVrm) {
-            intensity += 0.005; // 時間経過で強まる
+            intensity += 0.01;
             
             // クライマックス演出
-            if (intensity > 5 && !isClimax) {
+            if (intensity > 10 && !isClimax) {
                 isClimax = true;
                 dialogueEl.style.display = 'block';
                 dialogueEl.innerText = "あ゛ぁっ！！！！！";
-                // ここでパーティクル(潮吹き表現)を表示するコードなどを追加可能
+                document.body.style.backgroundColor = "#ff00ff"; // フラッシュ演出
+                setTimeout(() => { document.body.style.backgroundColor = "#000"; }, 500);
             }
 
-            // モードに応じた動きの変化
-            const speed = isClimax ? 10 : 3;
-            const amp = isClimax ? 0.4 : 0.2;
+            const speed = isClimax ? 15 : 3;
+            const amp = isClimax ? 0.5 : 0.2;
             const hips = currentVrm.humanoid.getBoneNode('hips');
-            if (hips) hips.rotation.x = Math.sin(time * speed) * amp;
-
+            if (hips) hips.rotation.x = Math.sin(time * 0.003 * speed) * amp;
             currentVrm.update(0.016);
         }
         renderer.render(scene, camera);
-    }
-    animate();
+    });
 </script>
 </body>
 </html>
