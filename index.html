@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>VR Interactive Experience</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; background: #222; overflow: hidden; font-family: sans-serif; }
         #menu { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); color: #fff; padding: 10px; border-radius: 8px; display: none; }
         #toggle-btn { position: absolute; top: 10px; left: 10px; z-index: 1001; }
         #gauge-container { position: absolute; top: 10%; right: 20px; width: 30px; height: 70%; background: #333; border: 2px solid #fff; }
@@ -24,22 +24,37 @@
     <div id="gauge-container"><div id="gauge-fill"></div></div>
     <div id="dialogue"></div>
 
+<script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/",
+            "@pixiv/three-vrm": "https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js"
+        }
+    }
+</script>
+
 <script type="module">
     import * as THREE from 'three';
-    import { GLTFLoader } from 'https://unpkg.com/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
-    import { VRButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/VRButton.js';
-    import { VRM, VRMUtils } from 'https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { VRButton } from 'three/addons/webxr/VRButton.js';
+    import { VRM, VRMUtils } from '@pixiv/three-vrm';
 
     const scene = new THREE.Scene();
-    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
+    const light = new THREE.DirectionalLight(0xffffff, 2.0);
+    light.position.set(1, 1, 1);
+    scene.add(light);
+    scene.add(new THREE.AmbientLight(0xffffff, 1.0));
+
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
+    camera.position.set(0, 1.5, 1);
+    
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
 
-    // セリフデータ
     const scripts = {
         SOLO: ["…あ、見ないで…", "一人だと、変な感じ…", "んっ…！"],
         TOY: ["…これ、中まで…っ！", "あぁ…っ、壊れそう…", "気持ちいい…っ！"],
@@ -50,37 +65,40 @@
     const fill = document.getElementById('gauge-fill');
     const dialogue = document.getElementById('dialogue');
 
-    document.getElementById('toggle-btn').onclick = () => document.getElementById('menu').style.display = document.getElementById('menu').style.display === 'none' ? 'block' : 'none';
+    document.getElementById('toggle-btn').onclick = () => {
+        const m = document.getElementById('menu');
+        m.style.display = m.style.display === 'none' ? 'block' : 'none';
+    };
     document.getElementById('btn-solo').onclick = () => { mode = "SOLO"; intensity = 0; };
     document.getElementById('btn-toy').onclick = () => { mode = "TOY"; intensity = 0; };
     document.getElementById('btn-couple').onclick = () => { mode = "COUPLE"; intensity = 0; };
 
-    let vrm = null;
     const loader = new GLTFLoader();
     loader.load('2404886420955899236.vrm.glb', (gltf) => {
-        VRM.from(gltf).then((m) => { vrm = m; vrm.scene.position.set(0, 0, -1.5); scene.add(vrm.scene); });
-    });
+        VRMUtils.removeUnnecessaryJoints(gltf.scene);
+        VRM.from(gltf).then((vrm) => {
+            scene.add(vrm.scene);
+            vrm.scene.position.set(0, 0, -1.5);
+            
+            renderer.setAnimationLoop((time) => {
+                if (!isClimax) intensity += 0.05;
+                fill.style.height = Math.min(intensity, 100) + "%";
 
-    renderer.setAnimationLoop((time) => {
-        if (vrm) {
-            if (!isClimax) intensity += 0.05;
-            fill.style.height = Math.min(intensity, 100) + "%";
+                if (intensity > 100 && !isClimax) {
+                    isClimax = true;
+                    dialogue.innerText = "あ゛ぁっ！！潮吹いちゃった…！";
+                    document.body.style.backgroundColor = "#ff99cc";
+                } else if (!isClimax && Math.random() < 0.01) {
+                    const list = scripts[mode];
+                    dialogue.innerText = list[Math.floor(Math.random() * list.length)];
+                }
 
-            if (intensity > 100 && !isClimax) {
-                isClimax = true;
-                dialogue.innerText = "あ゛ぁっ！！潮吹いちゃった…！";
-                document.body.style.backgroundColor = "#ff99cc";
-            } else if (!isClimax && Math.random() < 0.01) {
-                const list = scripts[mode];
-                dialogue.innerText = list[Math.floor(Math.random() * list.length)];
-            }
-
-            const speed = isClimax ? 20 : (mode === "SOLO" ? 3 : 8);
-            const hips = vrm.humanoid.getBoneNode('hips');
-            if (hips) hips.rotation.x = Math.sin(time * 0.005 * speed) * 0.3;
-            vrm.update(0.016);
-        }
-        renderer.render(scene, camera);
+                const hips = vrm.humanoid.getBoneNode('hips');
+                if (hips) hips.rotation.x = Math.sin(time * 0.005 * (isClimax ? 20 : (mode === "SOLO" ? 3 : 8))) * 0.3;
+                vrm.update(0.016);
+                renderer.render(scene, camera);
+            });
+        });
     });
 </script>
 </body>
