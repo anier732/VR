@@ -2,14 +2,27 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Debug VR Mode</title>
+    <title>VR Interactive Experience</title>
     <style>
-        body { margin: 0; background: #333; color: #fff; font-family: sans-serif; }
-        #debug { position: absolute; top: 20px; left: 20px; z-index: 1000; font-size: 20px; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        #menu { position: absolute; top: 10px; left: 10px; z-index: 1000; background: rgba(0,0,0,0.8); color: #fff; padding: 10px; border-radius: 8px; display: none; }
+        #toggle-btn { position: absolute; top: 10px; left: 10px; z-index: 1001; }
+        #gauge-container { position: absolute; top: 10%; right: 20px; width: 30px; height: 70%; background: #333; border: 2px solid #fff; }
+        #gauge-fill { width: 100%; height: 0%; background: #ff00ff; }
+        #dialogue { position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); color: #fff; font-size: 24px; text-shadow: 2px 2px #000; }
     </style>
 </head>
 <body>
-    <div id="debug">Initializing...</div>
+    <button id="toggle-btn">Menu</button>
+    <div id="menu">
+        <ul style="list-style: none; padding: 0;">
+            <li id="btn-solo" style="cursor:pointer; margin-bottom:10px;">一人で…</li>
+            <li id="btn-toy" style="cursor:pointer; margin-bottom:10px;">道具を使う</li>
+            <li id="btn-couple" style="cursor:pointer;">一緒に…</li>
+        </ul>
+    </div>
+    <div id="gauge-container"><div id="gauge-fill"></div></div>
+    <div id="dialogue"></div>
 
 <script type="module">
     import * as THREE from 'three';
@@ -17,10 +30,8 @@
     import { VRButton } from 'https://unpkg.com/three@0.160.0/examples/jsm/webxr/VRButton.js';
     import { VRM, VRMUtils } from 'https://unpkg.com/@pixiv/three-vrm@3.0.0/lib/three-vrm.module.js';
 
-    const debugEl = document.getElementById('debug');
     const scene = new THREE.Scene();
-    // 確実に明るくする
-    scene.add(new THREE.AmbientLight(0xffffff, 5.0)); 
+    scene.add(new THREE.AmbientLight(0xffffff, 2.0));
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -28,23 +39,47 @@
     document.body.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
 
-    debugEl.innerText = "Loading model...";
+    // セリフデータ
+    const scripts = {
+        SOLO: ["…あ、見ないで…", "一人だと、変な感じ…", "んっ…！"],
+        TOY: ["…これ、中まで…っ！", "あぁ…っ、壊れそう…", "気持ちいい…っ！"],
+        COUPLE: ["…好き…もっと激しくして…", "あぁっ！いっちゃう！", "全部…中で出して…"]
+    };
 
+    let mode = "SOLO", intensity = 0, isClimax = false;
+    const fill = document.getElementById('gauge-fill');
+    const dialogue = document.getElementById('dialogue');
+
+    document.getElementById('toggle-btn').onclick = () => document.getElementById('menu').style.display = document.getElementById('menu').style.display === 'none' ? 'block' : 'none';
+    document.getElementById('btn-solo').onclick = () => { mode = "SOLO"; intensity = 0; };
+    document.getElementById('btn-toy').onclick = () => { mode = "TOY"; intensity = 0; };
+    document.getElementById('btn-couple').onclick = () => { mode = "COUPLE"; intensity = 0; };
+
+    let vrm = null;
     const loader = new GLTFLoader();
     loader.load('2404886420955899236.vrm.glb', (gltf) => {
-        debugEl.innerText = "Model loaded successfully!";
-        VRM.from(gltf).then((vrm) => {
-            vrm.scene.position.set(0, 0, -2); // 目の前に固定
-            scene.add(vrm.scene);
-            window.vrm = vrm;
-        });
-    }, undefined, (error) => {
-        debugEl.innerText = "Error: Model file not found. Check filename!";
-        console.error(error);
+        VRM.from(gltf).then((m) => { vrm = m; vrm.scene.position.set(0, 0, -1.5); scene.add(vrm.scene); });
     });
 
     renderer.setAnimationLoop((time) => {
-        if (window.vrm) window.vrm.update(0.016);
+        if (vrm) {
+            if (!isClimax) intensity += 0.05;
+            fill.style.height = Math.min(intensity, 100) + "%";
+
+            if (intensity > 100 && !isClimax) {
+                isClimax = true;
+                dialogue.innerText = "あ゛ぁっ！！潮吹いちゃった…！";
+                document.body.style.backgroundColor = "#ff99cc";
+            } else if (!isClimax && Math.random() < 0.01) {
+                const list = scripts[mode];
+                dialogue.innerText = list[Math.floor(Math.random() * list.length)];
+            }
+
+            const speed = isClimax ? 20 : (mode === "SOLO" ? 3 : 8);
+            const hips = vrm.humanoid.getBoneNode('hips');
+            if (hips) hips.rotation.x = Math.sin(time * 0.005 * speed) * 0.3;
+            vrm.update(0.016);
+        }
         renderer.render(scene, camera);
     });
 </script>
