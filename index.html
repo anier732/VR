@@ -42,15 +42,16 @@
 
     const scene = new THREE.Scene();
     const light = new THREE.DirectionalLight(0xffffff, 2.0);
-    light.position.set(1, 1, 1);
+    light.position.set(0, 2, 2);
     scene.add(light);
     scene.add(new THREE.AmbientLight(0xffffff, 1.0));
 
     const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 100);
-    camera.position.set(0, 1.5, 1);
+    camera.position.set(0, 1.5, 1.5); // カメラ位置を調整
     
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
     renderer.xr.enabled = true;
     document.body.appendChild(renderer.domElement);
     document.body.appendChild(VRButton.createButton(renderer));
@@ -74,11 +75,11 @@
     document.getElementById('btn-couple').onclick = () => { mode = "COUPLE"; intensity = 0; };
 
     const loader = new GLTFLoader();
-    loader.load('2404886420955899236.vrm.glb', (gltf) => {
-        VRMUtils.removeUnnecessaryJoints(gltf.scene);
+    // ここを model.glb に修正しました
+    loader.load('model.glb', (gltf) => {
         VRM.from(gltf).then((vrm) => {
             scene.add(vrm.scene);
-            vrm.scene.position.set(0, 0, -1.5);
+            vrm.scene.position.set(0, 0, 0); 
             
             renderer.setAnimationLoop((time) => {
                 if (!isClimax) intensity += 0.05;
@@ -99,6 +100,8 @@
                 renderer.render(scene, camera);
             });
         });
+    }, undefined, (err) => {
+        console.error("モデル読み込みエラー:", err);
     });
 </script>
 </body>
